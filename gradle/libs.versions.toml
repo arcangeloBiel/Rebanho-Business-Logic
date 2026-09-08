@@ -21,6 +21,9 @@ firebase-bom = "34.18.0"
 firebase-auth = "23.1.0"
 firebase-firestore = "25.1.0"
 
+group = "com.jakatech.rebanhomais"
+version = "1.0.0"
+
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }

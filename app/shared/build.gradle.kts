@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    `maven-publish`
+}
+
+group = "com.jakatech.rebanhomais"
+version = "1.0.0"
+
+compose.resources {
+    packageOfResClass = "com.jakatech.rebanhomais.kmp.generated.resources"
+    generateResClass = always
 }
 
 kotlin {

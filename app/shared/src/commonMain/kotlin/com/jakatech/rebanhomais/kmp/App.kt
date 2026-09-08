@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.painterResource
 
-import rebanhomais.app.shared.generated.resources.Res
-import rebanhomais.app.shared.generated.resources.compose_multiplatform
+import com.jakatech.rebanhomais.kmp.generated.resources.Res
+import com.jakatech.rebanhomais.kmp.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
