@@ -17,3 +17,14 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+# Firebase & Google Services configuration files
+google-services.json
+GoogleService-Info.plist
+
+# Firebase service account keys & credentials
+*firebase*.json
+*-service-account.json
+
+# Firebase CLI cache
+.firebase/
+firebase-debug.log*
