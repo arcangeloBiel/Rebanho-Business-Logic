@@ -1,5 +1,6 @@
 package com.jakatech.rebanhomais.kmp
 
+import com.jakatech.rebanhomais.kmp.firebase.FirestoreService
 import com.jakatech.rebanhomais.kmp.model.AnimalDto
 import com.jakatech.rebanhomais.kmp.model.ApiResponse
 import com.jakatech.rebanhomais.kmp.model.PesagemDto
@@ -14,17 +15,13 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    FirestoreService.initialize()
     embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
-
-// Armazenamento em memória para as rotas REST
-private val rebanhoDb = ConcurrentHashMap<String, AnimalDto>()
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -41,26 +38,34 @@ fun Application.module() {
         }
 
         route("/animais") {
-            // GET /animais -> Listar todo o rebanho
+            // GET /animais -> Listar todo o rebanho do Firestore
             get {
-                call.respond(rebanhoDb.values.toList())
+                try {
+                    val lista = FirestoreService.listarAnimais()
+                    call.respond(lista)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ApiResponse<List<AnimalDto>>(
+                            sucesso = false,
+                            mensagem = "Erro ao buscar animais do Firestore: ${e.message}"
+                        )
+                    )
+                }
             }
 
-            // POST /animais -> Cadastrar novo animal no rebanho
+            // POST /animais -> Gravar diretamente no Firestore
             post {
                 try {
                     val animal = call.receive<AnimalDto>()
-                    val animalId = animal.id?.ifBlank { null } ?: UUID.randomUUID().toString()
-                    val novoAnimal = animal.copy(id = animalId)
-                    
-                    rebanhoDb[animalId] = novoAnimal
+                    val animalSalvo = FirestoreService.salvarAnimal(animal)
                     
                     call.respond(
                         HttpStatusCode.Created,
                         ApiResponse(
                             sucesso = true,
-                            mensagem = "Animal cadastrado com sucesso no rebanho!",
-                            dados = novoAnimal
+                            mensagem = "Animal cadastrado no Cloud Firestore com sucesso!",
+                            dados = animalSalvo
                         )
                     )
                 } catch (e: Exception) {
@@ -68,74 +73,83 @@ fun Application.module() {
                         HttpStatusCode.BadRequest,
                         ApiResponse<AnimalDto>(
                             sucesso = false,
-                            mensagem = "Erro ao cadastrar animal: ${e.localizedMessage}"
+                            mensagem = "Erro ao salvar no Firestore: ${e.message}"
                         )
                     )
                 }
             }
 
-            // GET /animais/{animalId} -> Buscar animal por ID
+            // GET /animais/{animalId}
             get("/{animalId}") {
-                val animalId = call.parameters["animalId"]
-                val animal = animalId?.let { rebanhoDb[it] }
-                if (animal != null) {
-                    call.respond(animal)
-                } else {
-                    call.respond(HttpStatusCode.NotFound, ApiResponse<AnimalDto>(sucesso = false, mensagem = "Animal não encontrado."))
+                val animalId = call.parameters["animalId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest, ApiResponse<Unit>(sucesso = false, mensagem = "ID inválido")
+                )
+                try {
+                    val animal = FirestoreService.buscarAnimalPorId(animalId)
+                    if (animal != null) {
+                        call.respond(animal)
+                    } else {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ApiResponse<AnimalDto>(sucesso = false, mensagem = "Animal não encontrado no Firestore.")
+                        )
+                    }
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ApiResponse<Unit>(sucesso = false, mensagem = "Erro: ${e.message}")
+                    )
                 }
             }
 
-            // DELETE /animais/{animalId} -> Remover animal
+            // DELETE /animais/{animalId}
             delete("/{animalId}") {
-                val animalId = call.parameters["animalId"]
-                if (animalId != null && rebanhoDb.remove(animalId) != null) {
-                    call.respond(ApiResponse<Unit>(sucesso = true, mensagem = "Animal removido com sucesso."))
-                } else {
-                    call.respond(HttpStatusCode.NotFound, ApiResponse<Unit>(sucesso = false, mensagem = "Animal não encontrado."))
+                val animalId = call.parameters["animalId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest, ApiResponse<Unit>(sucesso = false, mensagem = "ID inválido")
+                )
+                try {
+                    FirestoreService.deletarAnimal(animalId)
+                    call.respond(ApiResponse<Unit>(sucesso = true, mensagem = "Animal removido do Firestore."))
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ApiResponse<Unit>(sucesso = false, mensagem = "Erro: ${e.message}")
+                    )
                 }
             }
 
-            // POST /animais/{animalId}/pesagens -> Adicionar pesagem
+            // POST /animais/{animalId}/pesagens
             post("/{animalId}/pesagens") {
-                val animalId = call.parameters["animalId"]
-                val animal = animalId?.let { rebanhoDb[it] }
-                if (animal == null) {
-                    call.respond(HttpStatusCode.NotFound, ApiResponse<Unit>(sucesso = false, mensagem = "Animal não encontrado."))
-                    return@post
-                }
-
-                val pesagem = call.receive<PesagemDto>()
-                val pesagemId = pesagem.id?.ifBlank { null } ?: UUID.randomUUID().toString()
-                val novaPesagem = pesagem.copy(id = pesagemId)
-
-                val animalAtualizado = animal.copy(
-                    pesoAtual = novaPesagem.pesoKg,
-                    historicoPesagem = animal.historicoPesagem + novaPesagem
+                val animalId = call.parameters["animalId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest, ApiResponse<Unit>(sucesso = false, mensagem = "ID inválido")
                 )
-                rebanhoDb[animal.id!!] = animalAtualizado
-
-                call.respond(HttpStatusCode.Created, ApiResponse(sucesso = true, mensagem = "Pesagem registrada!", dados = novaPesagem))
+                try {
+                    val pesagem = call.receive<PesagemDto>()
+                    val pesagemSalva = FirestoreService.salvarPesagem(animalId, pesagem)
+                    call.respond(HttpStatusCode.Created, ApiResponse(sucesso = true, mensagem = "Pesagem salva no Firestore!", dados = pesagemSalva))
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ApiResponse<Unit>(sucesso = false, mensagem = "Erro ao salvar pesagem: ${e.message}")
+                    )
+                }
             }
 
-            // POST /animais/{animalId}/vacinas -> Adicionar vacina
+            // POST /animais/{animalId}/vacinas
             post("/{animalId}/vacinas") {
-                val animalId = call.parameters["animalId"]
-                val animal = animalId?.let { rebanhoDb[it] }
-                if (animal == null) {
-                    call.respond(HttpStatusCode.NotFound, ApiResponse<Unit>(sucesso = false, mensagem = "Animal não encontrado."))
-                    return@post
-                }
-
-                val vacina = call.receive<VacinaDto>()
-                val vacinaId = vacina.id?.ifBlank { null } ?: UUID.randomUUID().toString()
-                val novaVacina = vacina.copy(id = vacinaId)
-
-                val animalAtualizado = animal.copy(
-                    vacinas = animal.vacinas + novaVacina
+                val animalId = call.parameters["animalId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest, ApiResponse<Unit>(sucesso = false, mensagem = "ID inválido")
                 )
-                rebanhoDb[animal.id!!] = animalAtualizado
-
-                call.respond(HttpStatusCode.Created, ApiResponse(sucesso = true, mensagem = "Vacina registrada!", dados = novaVacina))
+                try {
+                    val vacina = call.receive<VacinaDto>()
+                    val vacinaSalva = FirestoreService.salvarVacina(animalId, vacina)
+                    call.respond(HttpStatusCode.Created, ApiResponse(sucesso = true, mensagem = "Vacina salva no Firestore!", dados = vacinaSalva))
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ApiResponse<Unit>(sucesso = false, mensagem = "Erro ao salvar vacina: ${e.message}")
+                    )
+                }
             }
         }
     }
