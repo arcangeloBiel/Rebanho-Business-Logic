@@ -18,9 +18,10 @@ import kotlinx.serialization.json.Json
 
 fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
-    FirestoreService.initialize()
-    embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    embeddedServer(Netty, port = port, host = "0.0.0.0") {
+        FirestoreService.initialize()
+        module()
+    }.start(wait = true)
 }
 
 fun Application.module() {
@@ -29,6 +30,7 @@ fun Application.module() {
             prettyPrint = true
             isLenient = true
             ignoreUnknownKeys = true
+            encodeDefaults = true
         })
     }
 
