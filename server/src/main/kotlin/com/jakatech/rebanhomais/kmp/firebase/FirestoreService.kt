@@ -21,17 +21,26 @@ object FirestoreService {
     fun initialize() {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                val serviceAccountPath = System.getenv("FIREBASE_CREDENTIALS") ?: "serviceAccountKey.json"
-                val serviceAccountFile = File(serviceAccountPath)
+                val envPath = System.getenv("FIREBASE_CREDENTIALS")
+                val candidateFiles = listOfNotNull(
+                    envPath?.let { File(it) },
+                    File("serviceAccountKey.json"),
+                    File("server/serviceAccountKey.json"),
+                    File("../serviceAccountKey.json"),
+                    File("/home/ec2-user/Rebanho-Business-Logic/serviceAccountKey.json"),
+                    File(System.getProperty("user.dir"), "serviceAccountKey.json")
+                )
 
-                val options = if (serviceAccountFile.exists()) {
+                val serviceAccountFile = candidateFiles.firstOrNull { it.exists() && it.isFile }
+
+                val options = if (serviceAccountFile != null) {
                     logger.info("Inicializando Firebase com arquivo de credenciais: ${serviceAccountFile.absolutePath}")
                     FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(FileInputStream(serviceAccountFile)))
                         .setProjectId("rebanhomais-c2d02")
                         .build()
                 } else {
-                    logger.info("Tentando inicializar Firebase com Application Default Credentials...")
+                    logger.warn("Arquivo serviceAccountKey.json não encontrado nas pastas: ${candidateFiles.map { it.absolutePath }}. Tentando Application Default...")
                     FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.getApplicationDefault())
                         .setProjectId("rebanhomais-c2d02")
@@ -43,7 +52,7 @@ object FirestoreService {
             firestore = FirestoreClient.getFirestore()
             logger.info("Firestore inicializado com sucesso!")
         } catch (e: Exception) {
-            logger.warn("Aviso ao inicializar Firebase Admin SDK: ${e.message}. Operações do Firestore podem falhar se as credenciais não estiverem configuradas.")
+            logger.error("Falha ao inicializar Firebase Admin SDK: ${e.message}", e)
         }
     }
 
