@@ -62,10 +62,12 @@ object FirestoreService {
             "sexo" to animal.sexo,
             "pesoAtual" to animal.pesoAtual,
             "status" to animal.status,
-            "lote" to animal.lote
+            "lote" to animal.lote,
+            "criadoEm" to com.google.cloud.Timestamp.now().toDate().toString()
         )
 
-        docRef.set(animalData, SetOptions.merge()).get()
+        val writeResult = docRef.set(animalData, SetOptions.merge()).get()
+        logger.info("Animal $animalId gravado com sucesso no Firestore às: ${writeResult.updateTime}")
 
         animal.historicoPesagem.forEach { pesagem ->
             salvarPesagem(animalId, pesagem)
