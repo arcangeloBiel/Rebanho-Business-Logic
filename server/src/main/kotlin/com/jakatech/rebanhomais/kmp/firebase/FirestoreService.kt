@@ -22,25 +22,32 @@ object FirestoreService {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 val envPath = System.getenv("FIREBASE_CREDENTIALS")
-                val candidateFiles = listOfNotNull(
-                    envPath?.let { File(it) },
-                    File("serviceAccountKey.json"),
-                    File("server/serviceAccountKey.json"),
-                    File("../serviceAccountKey.json"),
-                    File("/home/ec2-user/Rebanho-Business-Logic/serviceAccountKey.json"),
-                    File(System.getProperty("user.dir"), "serviceAccountKey.json")
+                
+                // Procurar arquivo de credenciais pelo caminho explícito ou por qualquer .json de admin sdk na raiz ou em server/
+                val searchDirs = listOf(
+                    File("."),
+                    File("server"),
+                    File(".."),
+                    File("/home/ec2-user/Rebanho-Business-Logic")
                 )
 
-                val serviceAccountFile = candidateFiles.firstOrNull { it.exists() && it.isFile }
+                val foundJson = envPath?.let { File(it) }?.takeIf { it.exists() && it.isFile }
+                    ?: searchDirs.flatMap { dir ->
+                        dir.listFiles { _, name ->
+                            name == "serviceAccountKey.json" ||
+                            (name.startsWith("rebanhomais") && name.endsWith(".json")) ||
+                            (name.contains("firebase-adminsdk") && name.endsWith(".json"))
+                        }?.toList() ?: emptyList()
+                    }.firstOrNull { it.exists() && it.isFile }
 
-                val options = if (serviceAccountFile != null) {
-                    logger.info("Inicializando Firebase com arquivo de credenciais: ${serviceAccountFile.absolutePath}")
+                val options = if (foundJson != null) {
+                    logger.info("Inicializando Firebase com arquivo de credenciais: ${foundJson.absolutePath}")
                     FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(FileInputStream(serviceAccountFile)))
+                        .setCredentials(GoogleCredentials.fromStream(FileInputStream(foundJson)))
                         .setProjectId("rebanhomais-c2d02")
                         .build()
                 } else {
-                    logger.warn("Arquivo serviceAccountKey.json não encontrado nas pastas: ${candidateFiles.map { it.absolutePath }}. Tentando Application Default...")
+                    logger.warn("Nenhum arquivo de credencial Firebase encontrado. Tentando Application Default...")
                     FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.getApplicationDefault())
                         .setProjectId("rebanhomais-c2d02")

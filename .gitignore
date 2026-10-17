@@ -24,6 +24,7 @@ GoogleService-Info.plist
 # Firebase service account keys & credentials
 *firebase*.json
 *-service-account.json
+serviceAccountKey.json
 
 # Firebase CLI cache
 .firebase/
