@@ -1,10 +1,15 @@
 package com.jakatech.rebanhomais.kmp
 
+import com.jakatech.rebanhomais.kmp.firebase.AuthService
 import com.jakatech.rebanhomais.kmp.firebase.FirestoreService
 import com.jakatech.rebanhomais.kmp.model.AnimalDto
 import com.jakatech.rebanhomais.kmp.model.ApiResponse
+import com.jakatech.rebanhomais.kmp.model.AuthRequestDto
+import com.jakatech.rebanhomais.kmp.model.AuthResponseDto
 import com.jakatech.rebanhomais.kmp.model.PesagemDto
+import com.jakatech.rebanhomais.kmp.model.ResetPasswordRequestDto
 import com.jakatech.rebanhomais.kmp.model.VacinaDto
+import com.jakatech.rebanhomais.kmp.model.VerifyTokenRequestDto
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -37,6 +42,72 @@ fun Application.module() {
     routing {
         get("/") {
             call.respondText(sayHello("Ktor"))
+        }
+
+        route("/auth") {
+            // POST /auth/register ou POST /auth/cadastro
+            post("/register") { handleRegister(call) }
+            post("/cadastro") { handleRegister(call) }
+
+            // POST /auth/login
+            post("/login") {
+                try {
+                    val request = call.receive<AuthRequestDto>()
+                    val result = AuthService.login(request)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            sucesso = true,
+                            mensagem = "Login realizado com sucesso!",
+                            dados = result
+                        )
+                    )
+                } catch (e: IllegalArgumentException) {
+                    call.respond(
+                        HttpStatusCode.Unauthorized,
+                        ApiResponse<AuthResponseDto>(
+                            sucesso = false,
+                            mensagem = e.message ?: "Credenciais inválidas"
+                        )
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ApiResponse<AuthResponseDto>(
+                            sucesso = false,
+                            mensagem = "Erro interno ao realizar login: ${e.message}"
+                        )
+                    )
+                }
+            }
+
+            // POST /auth/reset-password ou POST /auth/redefinir-senha
+            post("/reset-password") { handleResetPassword(call) }
+            post("/redefinir-senha") { handleResetPassword(call) }
+
+            // POST /auth/verify-token
+            post("/verify-token") {
+                try {
+                    val request = call.receive<VerifyTokenRequestDto>()
+                    val result = AuthService.verifyToken(request.token)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            sucesso = true,
+                            mensagem = "Token válido!",
+                            dados = result
+                        )
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.Unauthorized,
+                        ApiResponse<AuthResponseDto>(
+                            sucesso = false,
+                            mensagem = e.message ?: "Token inválido"
+                        )
+                    )
+                }
+            }
         }
 
         route("/animais") {
@@ -154,5 +225,67 @@ fun Application.module() {
                 }
             }
         }
+    }
+}
+
+private suspend fun handleRegister(call: ApplicationCall) {
+    try {
+        val request = call.receive<AuthRequestDto>()
+        val result = AuthService.register(request)
+        call.respond(
+            HttpStatusCode.Created,
+            ApiResponse(
+                sucesso = true,
+                mensagem = "Usuário cadastrado com sucesso!",
+                dados = result
+            )
+        )
+    } catch (e: IllegalArgumentException) {
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ApiResponse<AuthResponseDto>(
+                sucesso = false,
+                mensagem = e.message ?: "Erro no cadastro"
+            )
+        )
+    } catch (e: Exception) {
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ApiResponse<AuthResponseDto>(
+                sucesso = false,
+                mensagem = "Erro interno ao cadastrar usuário: ${e.message}"
+            )
+        )
+    }
+}
+
+private suspend fun handleResetPassword(call: ApplicationCall) {
+    try {
+        val request = call.receive<ResetPasswordRequestDto>()
+        val link = AuthService.resetPassword(request.email)
+        call.respond(
+            HttpStatusCode.OK,
+            ApiResponse(
+                sucesso = true,
+                mensagem = "Link para redefinição de senha gerado com sucesso!",
+                dados = mapOf("link" to link)
+            )
+        )
+    } catch (e: IllegalArgumentException) {
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ApiResponse<Unit>(
+                sucesso = false,
+                mensagem = e.message ?: "E-mail inválido"
+            )
+        )
+    } catch (e: Exception) {
+        call.respond(
+            HttpStatusCode.InternalServerError,
+            ApiResponse<Unit>(
+                sucesso = false,
+                mensagem = "Erro interno: ${e.message}"
+            )
+        )
     }
 }

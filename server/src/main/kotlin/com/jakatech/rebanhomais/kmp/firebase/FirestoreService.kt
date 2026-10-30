@@ -63,6 +63,8 @@ object FirestoreService {
         }
     }
 
+    fun getDb(): Firestore? = firestore
+
     private fun db(): Firestore = firestore ?: throw IllegalStateException("Firestore não inicializado. Configure a variável FIREBASE_CREDENTIALS ou coloque o serviceAccountKey.json na raiz.")
 
     // POST /animais
