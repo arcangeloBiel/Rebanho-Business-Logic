@@ -26,6 +26,21 @@ sealed interface ErroDominio {
     data class ProtocoloNaoEncontrado(val protocoloId: String) : ErroDominio
     data class DoseInvalida(val dose: Int, val dosesDoProtocolo: Int) : ErroDominio
     data object TipoDeSaidaInvalido : ErroDominio
+
+    // Conta e sessão (PRD Fase 2, RF-12)
+    data object EmailInvalido : ErroDominio
+    data class SenhaFraca(val minimoDeCaracteres: Int) : ErroDominio
+    data object EmailJaCadastrado : ErroDominio
+    /** E-mail ou senha errados. Nunca diz qual dos dois (RN-03). */
+    data object CredenciaisInvalidas : ErroDominio
+    data object EmailNaoConfirmado : ErroDominio
+    /** Código de confirmação errado, vencido ou mal digitado. */
+    data object CodigoInvalido : ErroDominio
+    /** Muitos pedidos seguidos (ex.: reenviar código); tente de novo em alguns minutos. */
+    data object MuitasTentativas : ErroDominio
+    data object SemConexao : ErroDominio
+    /** Falha do servidor que o app não sabe tratar. [detalhe] é para log, não para o usuário. */
+    data class ErroInesperado(val detalhe: String) : ErroDominio
 }
 
 enum class MotivoBrincoInvalido { VAZIO, MUITO_LONGO, CARACTERE_INVALIDO }
