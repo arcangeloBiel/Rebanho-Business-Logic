@@ -49,7 +49,6 @@ class SupabaseAuthRepository(private val supabase: SupabaseClient) : AuthReposit
             val usuario = auth.currentSessionOrNull()?.user?.paraUsuario()
             if (usuario != null) EstadoSessao.Logado(usuario, semConexao = true) else EstadoSessao.Deslogado
         }
-        else -> EstadoSessao.Carregando
     }
 
     override suspend fun criarConta(email: String, senha: String, nome: String?): Resultado<Unit> = chamar {

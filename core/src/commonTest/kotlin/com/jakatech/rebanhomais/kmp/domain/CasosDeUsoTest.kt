@@ -213,7 +213,7 @@ class CasosDeUsoTest {
         val segunda = registrarVacinacao(NovaVacinacao(animal.id, LocalDate(2026, 10, 31), protocoloId = protocolo.id)).sucesso()
         assertEquals(2, segunda.aplicacao.dose)
         assertEquals(MotivoPendencia.REFORCO, segunda.proxima!!.motivo)
-        assertEquals(LocalDate(2027, 10, 31), segunda.proxima!!.data)
+        assertEquals(LocalDate(2027, 10, 31), segunda.proxima.data)
     }
 
     @Test
