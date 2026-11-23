@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "684940513975",
+    "project_id": "rebanhomais-c2d02",
+    "storage_bucket": "rebanhomais-c2d02.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:684940513975:android:d6dacd1cde2e0e4c88f332",
+        "android_client_info": {
+          "package_name": "com.jakatech.rebanhomais.kmp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMkAErL6nt7SwEYKEyE0df-rxMq5CSOE4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

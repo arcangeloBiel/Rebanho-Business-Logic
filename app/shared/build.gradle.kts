@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    `maven-publish`
+}
+
+group = "com.jakatech.rebanhomais"
+version = "1.0.0"
+
+compose.resources {
+    packageOfResClass = "com.jakatech.rebanhomais.kmp.generated.resources"
+    generateResClass = always
 }
 
 kotlin {
@@ -43,9 +52,14 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.auth)
+            implementation(libs.firebase.firestore)
+            implementation(libs.kotlinx.coroutines.play.services)
         }
         commonMain.dependencies {
             api(project(":core"))
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
