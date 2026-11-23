@@ -4,7 +4,7 @@
 -- Usuários:  A = dono da Fazenda A,  B = dono da Fazenda B,  F = funcionário da Fazenda A
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(30);
 
 -- ---------------------------------------------------------------------
 -- Preparação (como postgres)
@@ -24,6 +24,14 @@ select is(
     (select count(*)::int from public.perfis),
     3,
     'Perfil criado automaticamente para cada conta nova'
+);
+
+select is(
+    (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname in ('papel_na_fazenda', 'e_membro', 'e_dono', 'compartilha_fazenda')),
+    0,
+    'Funções auxiliares de acesso ficam fora do schema exposto pela API'
 );
 
 -- ---------------------------------------------------------------------
