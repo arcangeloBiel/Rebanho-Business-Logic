@@ -26,10 +26,19 @@ object AuthService {
         .connectTimeout(Duration.ofSeconds(10))
         .build()
 
+    // A chave vem só do ambiente: nada de chave escrita no código.
     private val firebaseApiKey: String
         get() = System.getenv("FIREBASE_WEB_API_KEY")
             ?: System.getenv("FIREBASE_API_KEY")
-            ?: "AIzaSyBMkAErL6nt7SwEYKEyE0df-rxMq5CSOE4"
+            ?: throw IllegalStateException(
+                "Configure a variável de ambiente FIREBASE_WEB_API_KEY."
+            )
+
+    @Serializable
+    private data class FirebaseRestSendOobCodeRequest(
+        val requestType: String,
+        val email: String
+    )
 
     @Serializable
     private data class FirebaseRestSignInRequest(
@@ -163,18 +172,35 @@ object AuthService {
         }
     }
 
-    fun resetPassword(email: String): String {
+    /**
+     * Pede ao Firebase que envie o e-mail de redefinição de senha.
+     *
+     * O link nunca volta na resposta da API: ele chega só na caixa de entrada
+     * do dono do e-mail. Também não revelamos se o e-mail existe, para que a
+     * rota não sirva para descobrir quem tem conta.
+     */
+    fun resetPassword(email: String) {
         val cleanEmail = email.trim()
         if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
             throw IllegalArgumentException("E-mail inválido.")
         }
 
-        try {
-            val link = FirebaseAuth.getInstance().generatePasswordResetLink(cleanEmail)
-            logger.info("Link de redefinição de senha gerado para $cleanEmail")
-            return link
-        } catch (e: FirebaseAuthException) {
-            throw IllegalArgumentException("Erro ao solicitar redefinição: ${e.message}", e)
+        val url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=$firebaseApiKey"
+        val payload = json.encodeToString(
+            FirebaseRestSendOobCodeRequest.serializer(),
+            FirebaseRestSendOobCodeRequest(requestType = "PASSWORD_RESET", email = cleanEmail)
+        )
+
+        val httpRequest = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(payload))
+            .build()
+
+        val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+        if (httpResponse.statusCode() != 200) {
+            // EMAIL_NOT_FOUND e afins ficam só no log do servidor.
+            logger.info("Redefinição de senha não enviada (HTTP ${httpResponse.statusCode()}).")
         }
     }
 
