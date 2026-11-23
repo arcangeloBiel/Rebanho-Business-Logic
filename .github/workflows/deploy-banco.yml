@@ -8,6 +8,9 @@ name: Deploy do banco
 #   Secret   SUPABASE_DB_PASSWORD   senha do banco do projeto
 #   Variable SUPABASE_PROJECT_ID    ref do projeto (ex.: tpkzynnxyibmzzrdijcf)
 #
+# Supabase CLI v3: comandos de banco apontam para o banco local por padrão.
+# Por isso --remote (projeto hospedado) e --yes (CI não responde à confirmação).
+#
 # Produção: criar o Environment "producao" com aprovação obrigatória e um job igual
 # disparado pela branch main.
 
@@ -51,7 +54,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         if: steps.config.outputs.ok == 'true'
         with:
-          version: latest
+          version: 3.3.0
 
       - name: Ligar ao projeto
         if: steps.config.outputs.ok == 'true'
@@ -59,8 +62,8 @@ jobs:
 
       - name: Mostrar as migrations pendentes
         if: steps.config.outputs.ok == 'true'
-        run: supabase migration list
+        run: supabase migration list --remote
 
       - name: Aplicar as migrations
         if: steps.config.outputs.ok == 'true'
-        run: supabase db push
+        run: supabase db push --remote --yes

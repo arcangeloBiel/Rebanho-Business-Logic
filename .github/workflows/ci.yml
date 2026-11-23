@@ -40,7 +40,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.3.0
 
       - name: Subir o Postgres do Supabase e aplicar as migrations
         run: supabase db start
