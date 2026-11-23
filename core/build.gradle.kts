@@ -29,7 +29,9 @@ kotlin {
     
     sourceSets {
         commonMain.dependencies {
-            // put your Multiplatform dependencies here
+            // Domínio puro: só bibliotecas Kotlin multiplataforma, nada de Firebase/Supabase/banco.
+            api(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

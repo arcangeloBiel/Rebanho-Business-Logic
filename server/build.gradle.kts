@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverContentNegotiation)
+    implementation(libs.ktor.serverAuth)
     implementation(libs.ktor.serializationKotlinxJson)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.firebase.admin)
