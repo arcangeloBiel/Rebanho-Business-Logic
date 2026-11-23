@@ -31,6 +31,23 @@ jobs:
       - name: Build do app Android
         run: ./gradlew :app:androidApp:assembleDebug --stacktrace
 
+  banco:
+    name: Banco (Supabase local, RLS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Subir o Postgres do Supabase e aplicar as migrations
+        run: supabase db start
+
+      - name: Testes do banco (pgTAP)
+        run: supabase test db
+
   ios:
     name: iOS (simulador)
     runs-on: macos-latest
