@@ -24,11 +24,10 @@ object FirestoreService {
                 val envPath = System.getenv("FIREBASE_CREDENTIALS")
                 
                 // Procurar arquivo de credenciais pelo caminho explícito ou por qualquer .json de admin sdk na raiz ou em server/
+                // Em produção, use FIREBASE_CREDENTIALS. A busca local é só para desenvolvimento.
                 val searchDirs = listOf(
                     File("."),
-                    File("server"),
-                    File(".."),
-                    File("/home/ec2-user/Rebanho-Business-Logic")
+                    File("server")
                 )
 
                 val foundJson = envPath?.let { File(it) }?.takeIf { it.exists() && it.isFile }
