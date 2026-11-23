@@ -52,10 +52,6 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
-            implementation(project.dependencies.platform(libs.firebase.bom))
-            implementation(libs.firebase.auth)
-            implementation(libs.firebase.firestore)
-            implementation(libs.kotlinx.coroutines.play.services)
         }
         commonMain.dependencies {
             api(project(":core"))
