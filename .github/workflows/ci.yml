@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   jvm-android:
-    name: JVM, Android e servidor
+    name: JVM e Android
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -25,11 +25,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Testes (core, data, shared) e servidor
-        run: ./gradlew allTests :server:test --stacktrace
-
-      - name: Build do app Android
-        run: ./gradlew :app:androidApp:assembleDebug --stacktrace
+      - name: Testes (core e data)
+        run: ./gradlew allTests --stacktrace
 
   banco:
     name: Banco (Supabase local, RLS)
@@ -64,3 +61,9 @@ jobs:
 
       - name: Testes iOS
         run: ./gradlew iosSimulatorArm64Test --stacktrace
+
+      # Confere que a publicação para o app CMP sai completa (Android, iOS e JVM), sem publicar nada.
+      - name: Publicação local (core e data)
+        run: |
+          ./gradlew publishToMavenLocal -Prebanho.versao=0.0.0-ci --stacktrace
+          ls ~/.m2/repository/com/jakatech/rebanhomais/
