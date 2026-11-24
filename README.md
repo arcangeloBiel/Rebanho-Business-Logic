@@ -78,6 +78,22 @@ desenvolvimento do `gradle.properties` (o log do workflow avisa).
 5. Nos ViewModels, peça os casos de uso ao Koin e observe os `Flow` (ex.: `ObservarRebanho`, `ObservarPendenciasVacinais`).
    Os erros de negócio chegam como `Resultado.Falha(ErroDominio)`; a mensagem para o usuário é decisão da tela.
 
+6. Ligue a sincronização automática enquanto o app estiver na frente da tela (`ManterSincronizado`).
+   Ela envia e recebe ao abrir, quando a internet volta, 3 s depois de cada gravação e a cada 5 min;
+   sem internet ou sem usuário logado, espera:
+
+   ```kotlin
+   // No composable raiz do app CMP
+   val manter = koinInject<ManterSincronizado>()
+   LifecycleStartEffect(Unit) {
+       val job = manter.iniciar(lifecycleScope)
+       onStopOrDispose { job.cancel() }
+   }
+   ```
+
+   Para a tela de "tudo salvo" e o botão de sincronizar: `ObservarEstadoDaSincronizacao`,
+   `ObservarRegistrosComErro` e `SincronizarAgora`.
+
 ## Desenvolvimento
 
 ```bash

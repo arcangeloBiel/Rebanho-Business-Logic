@@ -123,3 +123,8 @@ interface SincronizacaoRepository {
     /** Envia os pendentes e, se der certo, recebe as novidades. */
     suspend fun sincronizar(): Resultado<ResumoDaSincronizacao>
 }
+
+/** Se o aparelho tem internet agora (PRD Fase 4, RF-06). Cada plataforma observa a rede do seu jeito. */
+interface Conectividade {
+    val online: Flow<Boolean>
+}

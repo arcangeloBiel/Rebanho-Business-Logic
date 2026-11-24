@@ -14,6 +14,7 @@ import com.jakatech.rebanhomais.kmp.data.preferencias.SettingsPreferenciasReposi
 import com.jakatech.rebanhomais.kmp.data.sync.ServidorDoRebanho
 import com.jakatech.rebanhomais.kmp.data.sync.ServidorSupabase
 import com.jakatech.rebanhomais.kmp.data.sync.SincronizacaoLocal
+import com.jakatech.rebanhomais.kmp.data.sync.moduloDeConectividade
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarFazenda
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarLote
@@ -25,6 +26,7 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.ExcluirAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Entrar
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarMinhasFazendas
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarPendenciasVacinais
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ManterSincronizado
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarHistoricoDoAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarLotes
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarPendenciasVacinais
@@ -80,7 +82,7 @@ import org.koin.dsl.module
  * protocolos e aplicações de vacina gravam no banco local (Fase 3).
  */
 val rebanhoModule: Module = module {
-    includes(moduloDoBancoLocal)
+    includes(moduloDoBancoLocal, moduloDeConectividade)
 
     single<Relogio> { RelogioDoSistema }
     single<GeradorDeId> { GeradorDeUuid }
@@ -136,6 +138,7 @@ val rebanhoModule: Module = module {
     factory { ObservarEstadoDaSincronizacao(get()) }
     factory { ObservarRegistrosComErro(get()) }
     factory { SincronizarAgora(get()) }
+    single { ManterSincronizado(get(), get(), get()) }
 
     // Pesagens e vacinas (banco local, Fase 3 fatia 3)
     factory { RegistrarPesagem(get(), get(), get(), get()) }
