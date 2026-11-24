@@ -51,6 +51,8 @@ sealed interface ErroDominio {
     /** Muitos pedidos seguidos (ex.: reenviar código); tente de novo em alguns minutos. */
     data object MuitasTentativas : ErroDominio
     data object SemConexao : ErroDominio
+    /** Sessão vencida ou ausente: é preciso entrar de novo. Nada local é apagado (PRD Fase 4, RN-09). */
+    data object SemSessao : ErroDominio
     /** Falha do servidor que o app não sabe tratar. [detalhe] é para log, não para o usuário. */
     data class ErroInesperado(val detalhe: String) : ErroDominio
 }

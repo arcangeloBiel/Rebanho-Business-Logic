@@ -112,7 +112,9 @@ private fun protocolo(
     createdAt: String,
     updatedAt: String,
     deletedAt: String?,
-    syncStatus: String
+    syncStatus: String,
+    syncErroCodigo: String?,
+    syncErroMensagem: String?
 ) = ProtocoloSanitario(
     id = id,
     fazendaId = fazendaId,
@@ -140,7 +142,9 @@ private fun aplicacao(
     createdAt: String,
     updatedAt: String,
     deletedAt: String?,
-    syncStatus: String
+    syncStatus: String,
+    syncErroCodigo: String?,
+    syncErroMensagem: String?
 ) = AplicacaoVacina(
     id = id,
     fazendaId = fazendaId,

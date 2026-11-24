@@ -28,6 +28,10 @@ jobs:
       - name: Testes (core e data)
         run: ./gradlew allTests --stacktrace
 
+      # A migração do banco local leva o schema antigo (databases/N.db) ao atual (.sq).
+      - name: Migrações do banco local
+        run: ./gradlew verifySqlDelightMigration --stacktrace
+
   banco:
     name: Banco (Supabase local, RLS)
     runs-on: ubuntu-latest

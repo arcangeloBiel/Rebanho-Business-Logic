@@ -57,7 +57,9 @@ private fun pesagem(
     createdAt: String,
     updatedAt: String,
     deletedAt: String?,
-    syncStatus: String
+    syncStatus: String,
+    syncErroCodigo: String?,
+    syncErroMensagem: String?
 ) = Pesagem(
     id = id,
     fazendaId = fazendaId,

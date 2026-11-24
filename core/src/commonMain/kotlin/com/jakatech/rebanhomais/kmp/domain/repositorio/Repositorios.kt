@@ -1,13 +1,17 @@
 package com.jakatech.rebanhomais.kmp.domain.repositorio
 
+import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
+import com.jakatech.rebanhomais.kmp.domain.model.EstadoDaSincronizacao
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.Lote
 import com.jakatech.rebanhomais.kmp.domain.model.Membro
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
+import com.jakatech.rebanhomais.kmp.domain.model.RegistroComErro
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoEnvio
 import kotlinx.coroutines.flow.Flow
 
 /*
@@ -89,4 +93,24 @@ interface MovimentacaoRepository {
 
     /** Movimentações do animal em ordem de data, atualizadas a cada mudança. */
     fun observarPorAnimal(animalId: String): Flow<List<Movimentacao>>
+}
+
+/**
+ * Envio do que foi gravado no aparelho para o servidor (PRD Fase 4).
+ * O recebimento entra na fatia 2.
+ */
+interface SincronizacaoRepository {
+    /** Pendentes, com erro, último envio e se está sincronizando, atualizado a cada mudança (RF-07). */
+    val estado: Flow<EstadoDaSincronizacao>
+
+    /** Registros recusados pelo servidor, com o motivo (CA-04.3). */
+    fun observarRegistrosComErro(): Flow<List<RegistroComErro>>
+
+    /**
+     * Envia todos os pendentes (RF-01 a RF-03). Recusas não interrompem o envio: ficam com erro.
+     * Falha com [com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio.SemConexao] ou
+     * [com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio.SemSessao] quando para no meio;
+     * o que já foi aceito fica marcado e o resto segue pendente.
+     */
+    suspend fun enviarPendentes(): Resultado<ResumoDoEnvio>
 }
