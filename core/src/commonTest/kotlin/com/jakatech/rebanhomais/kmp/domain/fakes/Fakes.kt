@@ -8,12 +8,14 @@ import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.FazendaDoUsuario
 import com.jakatech.rebanhomais.kmp.domain.model.Papel
+import com.jakatech.rebanhomais.kmp.domain.model.Lote
 import com.jakatech.rebanhomais.kmp.domain.model.Membro
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.FazendaRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.LoteRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
@@ -88,6 +90,18 @@ class AnimaisEmMemoria : AnimalRepository {
             .sortedWith(compareBy({ !it.ativo }, { it.brinco }))
     }
     override suspend fun excluir(animalId: String) { excluidos += animalId; versao.value++ }
+}
+
+class LotesEmMemoria : LoteRepository {
+    val lotes = mutableMapOf<String, Lote>()
+    private val versao = MutableStateFlow(0)
+    var gravacoes = 0
+        private set
+    override suspend fun salvar(lote: Lote) { lotes[lote.id] = lote; gravacoes++; versao.value++ }
+    override suspend fun buscarPorId(loteId: String) = lotes[loteId]
+    override suspend fun listarPorFazenda(fazendaId: String) =
+        lotes.values.filter { it.fazendaId == fazendaId }.sortedBy { it.nome.lowercase() }
+    override fun observarPorFazenda(fazendaId: String): Flow<List<Lote>> = versao.map { listarPorFazenda(fazendaId) }
 }
 
 class PesagensEmMemoria : PesagemRepository {

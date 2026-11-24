@@ -18,6 +18,7 @@ import com.jakatech.rebanhomais.kmp.domain.comum.MotivoGenitorInvalido
 import com.jakatech.rebanhomais.kmp.domain.fakes.AnimaisEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.HOJE
 import com.jakatech.rebanhomais.kmp.domain.fakes.IdsSequenciais
+import com.jakatech.rebanhomais.kmp.domain.fakes.LotesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MovimentacoesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.PesagensEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.RelogioFixo
@@ -42,11 +43,12 @@ class CasosDeUsoTest {
     private val ids = IdsSequenciais()
     private val relogio = RelogioFixo()
     private val animais = AnimaisEmMemoria()
+    private val lotes = LotesEmMemoria()
     private val movimentacoes = MovimentacoesEmMemoria()
     private val pesagens = PesagensEmMemoria()
     private val vacinas = VacinasEmMemoria()
 
-    private val cadastrarAnimal = CadastrarAnimal(animais, movimentacoes, ids, relogio)
+    private val cadastrarAnimal = CadastrarAnimal(animais, movimentacoes, lotes, ids, relogio)
     private val registrarPesagem = RegistrarPesagem(animais, pesagens, ids, relogio)
     private val registrarSaida = RegistrarSaida(animais, movimentacoes, ids, relogio)
     private val cadastrarProtocolo = CadastrarProtocolo(vacinas, ids)

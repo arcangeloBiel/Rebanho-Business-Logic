@@ -14,3 +14,23 @@ CREATE INDEX lotes_sync_idx ON lotes (sync_status);
 
 contar:
 SELECT count(*) FROM lotes;
+
+existe:
+SELECT count(*) FROM lotes WHERE id = ?;
+
+inserir:
+INSERT INTO lotes (id, fazenda_id, nome, created_at, updated_at, sync_status)
+VALUES (:id, :fazenda_id, :nome, :agora, :agora, 'PENDENTE');
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE lotes SET fazenda_id = :fazenda_id, nome = :nome, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+buscarPorId:
+SELECT * FROM lotes WHERE id = ? AND deleted_at IS NULL;
+
+listarPorFazenda:
+SELECT * FROM lotes
+WHERE fazenda_id = ? AND deleted_at IS NULL
+ORDER BY nome COLLATE NOCASE, created_at;
