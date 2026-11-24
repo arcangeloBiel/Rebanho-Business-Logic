@@ -29,3 +29,52 @@ CREATE INDEX animais_sync_idx ON animais (sync_status);
 
 contar:
 SELECT count(*) FROM animais;
+
+existe:
+SELECT count(*) FROM animais WHERE id = ?;
+
+inserir:
+INSERT INTO animais (
+    id, fazenda_id, brinco, sexo, origem, data_nascimento, nome, raca, aptidao,
+    mae_id, pai_id, lote_id, reprodutor, status, observacao, created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :brinco, :sexo, :origem, :data_nascimento, :nome, :raca, :aptidao,
+    :mae_id, :pai_id, :lote_id, :reprodutor, :status, :observacao, :agora, :agora, 'PENDENTE'
+);
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE animais SET
+    fazenda_id = :fazenda_id, brinco = :brinco, sexo = :sexo, origem = :origem,
+    data_nascimento = :data_nascimento, nome = :nome, raca = :raca, aptidao = :aptidao,
+    mae_id = :mae_id, pai_id = :pai_id, lote_id = :lote_id, reprodutor = :reprodutor,
+    status = :status, observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+buscarPorId:
+SELECT * FROM animais WHERE id = ? AND deleted_at IS NULL;
+
+-- Inclui excluídos e inativos: o brinco continua ocupado na fazenda.
+buscarPorBrinco:
+SELECT * FROM animais WHERE fazenda_id = ? AND brinco = ?;
+
+listarPorFazenda:
+SELECT * FROM animais
+WHERE fazenda_id = ? AND deleted_at IS NULL
+ORDER BY CASE status WHEN 'ATIVO' THEN 0 ELSE 1 END, brinco;
+
+-- RF-03: :padrao já vem com % e com os curingas escapados por '!'.
+-- LIKE do SQLite já ignora maiúsculas (letras sem acento).
+observarPorFazenda:
+SELECT * FROM animais
+WHERE fazenda_id = :fazenda_id AND deleted_at IS NULL
+  AND (brinco LIKE :padrao ESCAPE '!' OR nome LIKE :padrao ESCAPE '!')
+ORDER BY CASE status WHEN 'ATIVO' THEN 0 ELSE 1 END, brinco;
+
+contarFilhos:
+SELECT count(*) FROM animais WHERE mae_id = ? AND deleted_at IS NULL;
+
+-- RN-03: só marca; nada é apagado do aparelho.
+excluir:
+UPDATE animais SET deleted_at = :agora, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id AND deleted_at IS NULL;
