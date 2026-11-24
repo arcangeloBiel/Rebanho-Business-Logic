@@ -25,12 +25,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
     }
 }
 
-include(":app:androidApp")
-include(":app:shared")
 include(":core")
 include(":data")
-include(":server")

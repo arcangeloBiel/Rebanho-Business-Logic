@@ -1,8 +1,0 @@
-.git
-.gradle
-build
-*/build
-.idea
-.artifacts
-local.properties
-*.hprof
