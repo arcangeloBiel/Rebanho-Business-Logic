@@ -3,6 +3,8 @@ package com.jakatech.rebanhomais.kmp.data.di
 import com.jakatech.rebanhomais.kmp.data.auth.SupabaseAuthRepository
 import com.jakatech.rebanhomais.kmp.data.criarClienteSupabase
 import com.jakatech.rebanhomais.kmp.data.fazendas.SupabaseMinhasFazendasRepository
+import com.jakatech.rebanhomais.kmp.data.local.RebanhoDatabase
+import com.jakatech.rebanhomais.kmp.data.local.moduloDoBancoLocal
 import com.jakatech.rebanhomais.kmp.data.preferencias.SettingsPreferenciasRepository
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarFazenda
@@ -44,13 +46,16 @@ import org.koin.dsl.module
  * A UI (Android e iOS) só precisa carregar este módulo:
  *
  * ```
- * startKoin { modules(rebanhoModule) }
+ * startKoin { modules(rebanhoModule) }                          // iOS
+ * startKoin { androidContext(this@App); modules(rebanhoModule) }  // Android
  * ```
  *
  * Conta, sessão e minhas fazendas já funcionam (Fase 2). Os repositórios do rebanho (banco local)
  * entram na Fase 3; até lá, os casos de uso do rebanho estão declarados mas não podem ser criados.
  */
 val rebanhoModule: Module = module {
+    includes(moduloDoBancoLocal)
+
     single<Relogio> { RelogioDoSistema }
     single<GeradorDeId> { GeradorDeUuid }
 
@@ -58,6 +63,7 @@ val rebanhoModule: Module = module {
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     single<Settings> { Settings() }
     single<SupabaseClient> { criarClienteSupabase() }
+    single { RebanhoDatabase(get()) }
 
     // Repositórios
     single<AuthRepository> { SupabaseAuthRepository(get()) }

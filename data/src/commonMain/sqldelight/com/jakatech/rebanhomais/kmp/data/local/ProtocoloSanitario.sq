@@ -1,0 +1,22 @@
+-- Espelha public.protocolos_sanitarios do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE protocolos_sanitarios (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    doses INTEGER NOT NULL DEFAULT 1,
+    intervalo_entre_doses_dias INTEGER,
+    reforco_dias INTEGER,
+    sexo_alvo TEXT CHECK (sexo_alvo IS NULL OR sexo_alvo IN ('FEMEA', 'MACHO')),
+    idade_minima_meses INTEGER,
+    idade_maxima_meses INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX protocolos_fazenda_idx ON protocolos_sanitarios (fazenda_id);
+CREATE INDEX protocolos_sync_idx ON protocolos_sanitarios (sync_status);
+
+contar:
+SELECT count(*) FROM protocolos_sanitarios;

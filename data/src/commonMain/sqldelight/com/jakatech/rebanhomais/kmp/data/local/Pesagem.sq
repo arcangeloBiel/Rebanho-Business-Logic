@@ -1,0 +1,19 @@
+-- Espelha public.pesagens do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE pesagens (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    animal_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    peso_kg REAL NOT NULL CHECK (peso_kg > 0 AND peso_kg <= 2000),
+    observacao TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX pesagens_animal_idx ON pesagens (fazenda_id, animal_id);
+CREATE INDEX pesagens_sync_idx ON pesagens (sync_status);
+
+contar:
+SELECT count(*) FROM pesagens;
