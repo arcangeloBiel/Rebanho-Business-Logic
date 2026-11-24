@@ -1,0 +1,21 @@
+-- Espelha public.movimentacoes do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE movimentacoes (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    animal_id TEXT NOT NULL,
+    tipo TEXT NOT NULL CHECK (tipo IN ('NASCIMENTO', 'COMPRA', 'VENDA', 'MORTE', 'TRANSFERENCIA')),
+    data TEXT NOT NULL,
+    contraparte TEXT,
+    valor REAL,
+    observacao TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX movimentacoes_animal_idx ON movimentacoes (fazenda_id, animal_id);
+CREATE INDEX movimentacoes_sync_idx ON movimentacoes (sync_status);
+
+contar:
+SELECT count(*) FROM movimentacoes;

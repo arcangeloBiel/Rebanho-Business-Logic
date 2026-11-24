@@ -1,0 +1,16 @@
+-- Espelha public.lotes do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE lotes (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX lotes_fazenda_idx ON lotes (fazenda_id);
+CREATE INDEX lotes_sync_idx ON lotes (sync_status);
+
+contar:
+SELECT count(*) FROM lotes;

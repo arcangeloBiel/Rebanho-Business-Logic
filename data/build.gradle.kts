@@ -3,6 +3,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.sqldelight)
+}
+
+// ---------------------------------------------------------------------
+// Banco local (Fase 3). As tabelas espelham as do Supabase, mais sync_status.
+// Mudanças futuras no schema entram como migrações .sqm, verificadas pelo SQLDelight.
+// ---------------------------------------------------------------------
+sqldelight {
+    databases {
+        create("RebanhoDatabase") {
+            packageName.set("com.jakatech.rebanhomais.kmp.data.local")
+            verifyMigrations.set(true)
+        }
+    }
 }
 
 // ---------------------------------------------------------------------
@@ -70,16 +84,24 @@ kotlin {
                 implementation(libs.supabase.postgrest)
                 implementation(libs.multiplatform.settings.noArg)
                 implementation(libs.kotlinx.serialization.json)
+                implementation(libs.sqldelight.coroutines)
             }
         }
         androidMain.dependencies {
             implementation(libs.ktor.clientOkhttp)
+            implementation(libs.sqldelight.androidDriver)
+            implementation(libs.koin.android)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.clientOkhttp)
+            implementation(libs.sqldelight.sqliteDriver)
         }
         iosMain.dependencies {
             implementation(libs.ktor.clientDarwin)
+            implementation(libs.sqldelight.nativeDriver)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.sqliteDriver)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
