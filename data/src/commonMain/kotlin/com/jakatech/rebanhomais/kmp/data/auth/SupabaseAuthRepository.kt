@@ -79,6 +79,18 @@ class SupabaseAuthRepository(private val supabase: SupabaseClient) : AuthReposit
         usuarioAtual()
     }
 
+    override suspend fun pedirCodigoDeRecuperacao(email: String): Resultado<Unit> = executar {
+        auth.resetPasswordForEmail(email = email)
+    }
+
+    override suspend fun redefinirSenha(email: String, codigo: String, novaSenha: String): Resultado<Usuario> = executar {
+        // 1) O código de recuperação abre uma sessão; se estiver errado, nada muda (CA-04.3).
+        auth.verifyEmailOtp(type = OtpType.Email.RECOVERY, email = email, token = codigo)
+        // 2) Com a sessão aberta, troca a senha.
+        auth.updateUser { password = novaSenha }
+        usuarioAtual()
+    }
+
     override suspend fun sair() {
         try {
             auth.signOut()

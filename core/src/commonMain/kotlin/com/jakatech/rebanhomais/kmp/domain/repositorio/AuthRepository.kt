@@ -24,6 +24,16 @@ interface AuthRepository {
 
     suspend fun entrar(email: String, senha: String): Resultado<Usuario>
 
+    /** Envia por e-mail o código de 6 dígitos para recuperar a senha (RF-06). */
+    suspend fun pedirCodigoDeRecuperacao(email: String): Resultado<Unit>
+
+    /**
+     * Confere o código de recuperação e troca a senha (RF-06).
+     * Com código errado ou vencido, nada muda e a senha antiga continua valendo (CA-04.3).
+     * Em caso de sucesso, a sessão passa a Logado.
+     */
+    suspend fun redefinirSenha(email: String, codigo: String, novaSenha: String): Resultado<Usuario>
+
     /** Apaga a sessão do aparelho mesmo sem internet (RF-05). */
     suspend fun sair()
 }

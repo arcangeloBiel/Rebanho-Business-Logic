@@ -44,6 +44,8 @@ sealed interface ErroDominio {
     data object EmailNaoConfirmado : ErroDominio
     /** Código de confirmação errado, vencido ou mal digitado. */
     data object CodigoInvalido : ErroDominio
+    /** A senha nova é igual à atual. */
+    data object SenhaIgualAnterior : ErroDominio
     /** Muitos pedidos seguidos (ex.: reenviar código); tente de novo em alguns minutos. */
     data object MuitasTentativas : ErroDominio
     data object SemConexao : ErroDominio

@@ -15,6 +15,8 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarPendenciasVacinais
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarSessao
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObterCategoria
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObterResumoDePeso
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.PedirRecuperacaoDeSenha
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.RedefinirSenha
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ReenviarCodigo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.RegistrarPesagem
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.RegistrarSaida
@@ -67,6 +69,8 @@ val rebanhoModule: Module = module {
     factory { ConfirmarConta(get()) }
     factory { ReenviarCodigo(get()) }
     factory { Entrar(get()) }
+    factory { PedirRecuperacaoDeSenha(get()) }
+    factory { RedefinirSenha(get()) }
     factory { Sair(get(), get(), get()) }
     factory { ObservarSessao(get(), get(), get()) }
 

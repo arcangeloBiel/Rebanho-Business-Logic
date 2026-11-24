@@ -13,6 +13,7 @@ internal fun erroDeAuth(codigo: String?, status: Int?): ErroDominio = when (codi
     "user_already_exists", "email_exists" -> ErroDominio.EmailJaCadastrado
     "weak_password" -> ErroDominio.SenhaFraca(RegrasDeConta.SENHA_MINIMA)
     "otp_expired" -> ErroDominio.CodigoInvalido
+    "same_password" -> ErroDominio.SenhaIgualAnterior
     "email_address_invalid" -> ErroDominio.EmailInvalido
     "over_email_send_rate_limit", "over_request_rate_limit" -> ErroDominio.MuitasTentativas
     else -> if (status == 429) {

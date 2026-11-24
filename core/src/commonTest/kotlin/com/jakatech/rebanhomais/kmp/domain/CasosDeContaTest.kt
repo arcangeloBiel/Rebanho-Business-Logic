@@ -4,6 +4,8 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.ConfirmarConta
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CriarConta
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Entrar
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarSessao
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.PedirRecuperacaoDeSenha
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.RedefinirSenha
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ReenviarCodigo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Sair
 import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
@@ -44,6 +46,14 @@ private class AuthFalso : AuthRepository {
     }
     override suspend fun entrar(email: String, senha: String): Resultado<Usuario> {
         chamadas += "entrar($email)"; return respostaEntrar
+    }
+    var respostaPedirRecuperacao: Resultado<Unit> = Resultado.Sucesso(Unit)
+    var respostaRedefinir: Resultado<Usuario> = Resultado.Sucesso(Usuario("u1", "ana@teste.com"))
+    override suspend fun pedirCodigoDeRecuperacao(email: String): Resultado<Unit> {
+        chamadas += "pedirCodigoDeRecuperacao($email)"; return respostaPedirRecuperacao
+    }
+    override suspend fun redefinirSenha(email: String, codigo: String, novaSenha: String): Resultado<Usuario> {
+        chamadas += "redefinirSenha($email,$codigo)"; return respostaRedefinir
     }
     override suspend fun sair() {
         chamadas += "sair"; sessao.value = EstadoSessao.Deslogado
@@ -131,6 +141,48 @@ class CasosDeContaTest {
         Entrar(auth)("ana@teste.com", "curta").sucesso()
         Entrar(auth)("ana@teste.com", "").falhaCom<ErroDominio.CredenciaisInvalidas>()
         assertEquals(1, auth.chamadas.size)
+    }
+
+    // HU-04
+
+    @Test
+    fun ca_04_1_pede_o_codigo_com_email_normalizado() = runTest {
+        PedirRecuperacaoDeSenha(auth)(" Ana@Teste.com ").sucesso()
+        assertEquals(listOf("pedirCodigoDeRecuperacao(ana@teste.com)"), auth.chamadas)
+    }
+
+    @Test
+    fun ca_04_1_mesma_resposta_para_email_sem_conta() = runTest {
+        // Qualquer recusa que revele se a conta existe vira sucesso (RN-03).
+        auth.respostaPedirRecuperacao = Resultado.Falha(ErroDominio.ErroInesperado("user_not_found"))
+        PedirRecuperacaoDeSenha(auth)("ninguem@teste.com").sucesso()
+    }
+
+    @Test
+    fun ca_04_1_sem_internet_ou_muitas_tentativas_aparecem() = runTest {
+        auth.respostaPedirRecuperacao = Resultado.Falha(ErroDominio.SemConexao)
+        PedirRecuperacaoDeSenha(auth)("ana@teste.com").falhaCom<ErroDominio.SemConexao>()
+        auth.respostaPedirRecuperacao = Resultado.Falha(ErroDominio.MuitasTentativas)
+        PedirRecuperacaoDeSenha(auth)("ana@teste.com").falhaCom<ErroDominio.MuitasTentativas>()
+    }
+
+    @Test
+    fun ca_04_2_redefine_com_codigo_e_senha_nova_validos() = runTest {
+        RedefinirSenha(auth)("ANA@teste.com", "123 456", "senhanova1").sucesso()
+        assertEquals(listOf("redefinirSenha(ana@teste.com,123456)"), auth.chamadas)
+    }
+
+    @Test
+    fun ca_04_3_codigo_vencido_vem_do_servidor() = runTest {
+        auth.respostaRedefinir = Resultado.Falha(ErroDominio.CodigoInvalido)
+        RedefinirSenha(auth)("ana@teste.com", "123456", "senhanova1").falhaCom<ErroDominio.CodigoInvalido>()
+    }
+
+    @Test
+    fun redefinir_valida_codigo_e_senha_antes_de_chamar_o_servidor() = runTest {
+        RedefinirSenha(auth)("ana@teste.com", "123", "senhanova1").falhaCom<ErroDominio.CodigoInvalido>()
+        RedefinirSenha(auth)("ana@teste.com", "123456", "curta").falhaCom<ErroDominio.SenhaFraca>()
+        assertTrue(auth.chamadas.isEmpty())
     }
 
     // HU-03
