@@ -7,7 +7,6 @@ import com.jakatech.rebanhomais.kmp.domain.model.TipoMovimentacao
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlin.coroutines.CoroutineContext
@@ -40,17 +39,32 @@ class MovimentacoesLocais(
     }
 
     override suspend fun listarPorAnimal(animalId: String): List<Movimentacao> = withContext(contexto) {
-        q.listarPorAnimal(animalId).executeAsList().map { it.paraDominio() }
+        q.listarPorAnimal(animalId, ::movimentacao).executeAsList()
     }
 
     override fun observarPorAnimal(animalId: String): Flow<List<Movimentacao>> =
-        q.listarPorAnimal(animalId).asFlow().mapToList(contexto).map { linhas -> linhas.map { it.paraDominio() } }
+        q.listarPorAnimal(animalId, ::movimentacao).asFlow().mapToList(contexto)
 }
 
-private fun Movimentacoes.paraDominio() = Movimentacao(
+/** Linha de movimentacoes → domínio, na ordem das colunas da tabela (Movimentacao.sq). */
+@Suppress("UNUSED_PARAMETER")
+private fun movimentacao(
+    id: String,
+    fazendaId: String,
+    animalId: String,
+    tipo: String,
+    data: String,
+    contraparte: String?,
+    valor: Double?,
+    observacao: String?,
+    createdAt: String,
+    updatedAt: String,
+    deletedAt: String?,
+    syncStatus: String
+) = Movimentacao(
     id = id,
-    fazendaId = fazenda_id,
-    animalId = animal_id,
+    fazendaId = fazendaId,
+    animalId = animalId,
     tipo = TipoMovimentacao.valueOf(tipo),
     data = LocalDate.parse(data),
     contraparte = contraparte,
