@@ -39,6 +39,7 @@ private class SincronizacaoFalsa : SincronizacaoRepository {
     override fun observarRegistrosComErro(): Flow<List<RegistroComErro>> = flowOf(emptyList())
     override suspend fun enviarPendentes(): Resultado<ResumoDoEnvio> = error("não usado")
     override suspend fun receberNovidades(): Resultado<ResumoDoRecebimento> = error("não usado")
+    override suspend fun apagarDadosLocais() = Unit
     override suspend fun sincronizar(): Resultado<ResumoDaSincronizacao> {
         chamadas++
         falhas.removeFirstOrNull()?.let { return Resultado.Falha(it) }

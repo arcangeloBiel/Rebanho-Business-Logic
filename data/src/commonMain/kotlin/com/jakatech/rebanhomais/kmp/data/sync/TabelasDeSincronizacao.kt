@@ -131,8 +131,8 @@ internal fun SqlDriver.idsComErro(tabela: TabelaDeSincronizacao): Set<String> =
 internal fun SqlDriver.marcarSincronizado(tabela: TabelaDeSincronizacao, linha: LinhaPendente) {
     execute(
         null,
-        "UPDATE ${tabela.nome} SET sync_status = 'SINCRONIZADO', sync_erro_codigo = NULL, sync_erro_mensagem = NULL " +
-            "WHERE id = ? AND updated_at = ?",
+        "UPDATE ${tabela.nome} SET sync_status = 'SINCRONIZADO', sync_erro_codigo = NULL, sync_erro_mensagem = NULL" +
+            tabela.marcaJaSincronizado() + " WHERE id = ? AND updated_at = ?",
         2
     ) {
         bindString(0, linha.id)
@@ -222,15 +222,17 @@ internal fun SqlDriver.aplicarDoServidor(tabela: TabelaDeSincronizacao, json: Js
     if (statusLocal == null) {
         execute(
             null,
-            "INSERT INTO ${tabela.nome} (${colunas.joinToString(", ")}, sync_status) " +
-                "VALUES (${colunas.joinToString(", ") { "?" }}, 'SINCRONIZADO')",
+            "INSERT INTO ${tabela.nome} (${colunas.joinToString(", ")}, sync_status" +
+                (if (tabela.nome == "animais") ", ja_sincronizado" else "") + ") " +
+                "VALUES (${colunas.joinToString(", ") { "?" }}, 'SINCRONIZADO'" +
+                (if (tabela.nome == "animais") ", 1" else "") + ")",
             colunas.size
         ) { vincular(0) }
     } else {
         execute(
             null,
             "UPDATE ${tabela.nome} SET ${colunas.joinToString(", ") { "$it = ?" }}, sync_status = 'SINCRONIZADO', " +
-                "sync_erro_codigo = NULL, sync_erro_mensagem = NULL WHERE id = ?",
+                "sync_erro_codigo = NULL, sync_erro_mensagem = NULL" + tabela.marcaJaSincronizado() + " WHERE id = ?",
             colunas.size + 1
         ) {
             vincular(0)
@@ -238,6 +240,15 @@ internal fun SqlDriver.aplicarDoServidor(tabela: TabelaDeSincronizacao, json: Js
         }
     }
     return Aplicacao.APLICADA
+}
+
+/** Animais guardam que já estiveram no servidor: o brinco deixa de poder ser corrigido (RN-12). */
+private fun TabelaDeSincronizacao.marcaJaSincronizado(): String = if (nome == "animais") ", ja_sincronizado = 1" else ""
+
+/** Apaga do aparelho todo o rebanho e os marcadores (ao sair, RF-10). */
+internal fun SqlDriver.apagarTudo() {
+    for (tabela in TABELAS_DE_SINCRONIZACAO) execute(null, "DELETE FROM ${tabela.nome}", 0)
+    execute(null, "DELETE FROM marcadores_sync", 0)
 }
 
 /** Apaga do aparelho tudo das fazendas que não estão em [fazendas] (RN-11, RF-12). */

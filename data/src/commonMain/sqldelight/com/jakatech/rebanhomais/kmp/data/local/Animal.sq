@@ -24,6 +24,8 @@ CREATE TABLE animais (
     -- Fase 4: motivo da recusa do servidor; preenchido = registro com erro, fora do envio até ser corrigido.
     sync_erro_codigo TEXT,
     sync_erro_mensagem TEXT,
+    -- Fase 4 (RN-12): 1 depois que o servidor aceitou ou mandou o animal; aí o brinco não muda mais.
+    ja_sincronizado INTEGER NOT NULL DEFAULT 0,
     UNIQUE (fazenda_id, brinco)
 );
 
@@ -83,3 +85,7 @@ excluir:
 UPDATE animais SET deleted_at = :agora, updated_at = :agora, sync_status = 'PENDENTE',
     sync_erro_codigo = NULL, sync_erro_mensagem = NULL
 WHERE id = :id AND deleted_at IS NULL;
+
+-- RN-12: o brinco só pode ser corrigido enquanto o animal nunca esteve no servidor.
+jaSincronizado:
+SELECT ja_sincronizado FROM animais WHERE id = ?;

@@ -51,6 +51,13 @@ sealed interface ErroDominio {
     /** Muitos pedidos seguidos (ex.: reenviar código); tente de novo em alguns minutos. */
     data object MuitasTentativas : ErroDominio
     data object SemConexao : ErroDominio
+    /**
+     * Ao sair: ainda há registros só no aparelho (PRD Fase 4, RN-10). Nada foi apagado.
+     * A tela mostra os números e chama Sair de novo com confirmarPerda = true se o usuário confirmar.
+     */
+    data class DadosNaoEnviados(val pendentes: Int, val comErro: Int) : ErroDominio
+    /** O animal já esteve no servidor: o brinco (identificação do PNIB) não muda mais por correção (RN-12). */
+    data object BrincoJaSincronizado : ErroDominio
     /** Sessão vencida ou ausente: é preciso entrar de novo. Nada local é apagado (PRD Fase 4, RN-09). */
     data object SemSessao : ErroDominio
     /** Falha do servidor que o app não sabe tratar. [detalhe] é para log, não para o usuário. */
