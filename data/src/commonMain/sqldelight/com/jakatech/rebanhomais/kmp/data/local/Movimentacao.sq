@@ -19,3 +19,25 @@ CREATE INDEX movimentacoes_sync_idx ON movimentacoes (sync_status);
 
 contar:
 SELECT count(*) FROM movimentacoes;
+
+existe:
+SELECT count(*) FROM movimentacoes WHERE id = ?;
+
+inserir:
+INSERT INTO movimentacoes (
+    id, fazenda_id, animal_id, tipo, data, contraparte, valor, observacao, created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :animal_id, :tipo, :data, :contraparte, :valor, :observacao, :agora, :agora, 'PENDENTE'
+);
+
+atualizar:
+UPDATE movimentacoes SET
+    fazenda_id = :fazenda_id, animal_id = :animal_id, tipo = :tipo, data = :data,
+    contraparte = :contraparte, valor = :valor, observacao = :observacao,
+    updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+listarPorAnimal:
+SELECT * FROM movimentacoes
+WHERE animal_id = ? AND deleted_at IS NULL
+ORDER BY data, created_at;

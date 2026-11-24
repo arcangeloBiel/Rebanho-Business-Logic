@@ -19,7 +19,9 @@ import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlin.test.assertIs
 import kotlin.test.fail
@@ -66,12 +68,26 @@ class PreferenciasEmMemoria : PreferenciasRepository {
 
 class AnimaisEmMemoria : AnimalRepository {
     val animais = mutableMapOf<String, Animal>()
-    override suspend fun salvar(animal: Animal) { animais[animal.id] = animal }
-    override suspend fun buscarPorId(animalId: String) = animais[animalId]
+    val excluidos = mutableSetOf<String>()
+    private val versao = MutableStateFlow(0)
+    var gravacoes = 0
+        private set
+
+    private fun visiveis() = animais.values.filter { it.id !in excluidos }
+
+    override suspend fun salvar(animal: Animal) { animais[animal.id] = animal; gravacoes++; versao.value++ }
+    override suspend fun buscarPorId(animalId: String) = animais[animalId]?.takeIf { animalId !in excluidos }
     override suspend fun buscarPorBrinco(fazendaId: String, brinco: String) =
         animais.values.firstOrNull { it.fazendaId == fazendaId && it.brinco == brinco }
-    override suspend fun listarPorFazenda(fazendaId: String) = animais.values.filter { it.fazendaId == fazendaId }
-    override suspend fun contarFilhos(maeId: String) = animais.values.count { it.maeId == maeId }
+    override suspend fun listarPorFazenda(fazendaId: String) = visiveis().filter { it.fazendaId == fazendaId }
+    override suspend fun contarFilhos(maeId: String) = visiveis().count { it.maeId == maeId }
+    override fun observarPorFazenda(fazendaId: String, busca: String): Flow<List<Animal>> = versao.map {
+        visiveis()
+            .filter { it.fazendaId == fazendaId }
+            .filter { busca.isEmpty() || it.brinco.contains(busca, true) || it.nome?.contains(busca, true) == true }
+            .sortedWith(compareBy({ !it.ativo }, { it.brinco }))
+    }
+    override suspend fun excluir(animalId: String) { excluidos += animalId; versao.value++ }
 }
 
 class PesagensEmMemoria : PesagemRepository {
@@ -93,8 +109,15 @@ class VacinasEmMemoria : VacinaRepository {
 
 class MovimentacoesEmMemoria : MovimentacaoRepository {
     val movimentacoes = mutableListOf<Movimentacao>()
-    override suspend fun salvar(movimentacao: Movimentacao) { movimentacoes += movimentacao }
+    private val versao = MutableStateFlow(0)
+    override suspend fun salvar(movimentacao: Movimentacao) {
+        movimentacoes.removeAll { it.id == movimentacao.id }
+        movimentacoes += movimentacao
+        versao.value++
+    }
     override suspend fun listarPorAnimal(animalId: String) = movimentacoes.filter { it.animalId == animalId }
+    override fun observarPorAnimal(animalId: String): Flow<List<Movimentacao>> =
+        versao.map { movimentacoes.filter { it.animalId == animalId }.sortedBy { it.data } }
 }
 
 fun <T> Resultado<T>.sucesso(): T = when (this) {
