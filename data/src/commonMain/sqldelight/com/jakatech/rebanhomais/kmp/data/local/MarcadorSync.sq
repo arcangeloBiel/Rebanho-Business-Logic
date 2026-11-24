@@ -1,0 +1,19 @@
+-- Até onde o aparelho já recebeu cada tabela de cada fazenda (PRD Fase 4, RF-04, RF-05).
+-- (atualizado_em, ultimo_id) é a última linha aplicada, na ordem do servidor (updated_at, id).
+CREATE TABLE marcadores_sync (
+    tabela TEXT NOT NULL,
+    fazenda_id TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL,
+    ultimo_id TEXT NOT NULL,
+    PRIMARY KEY (tabela, fazenda_id)
+);
+
+buscar:
+SELECT atualizado_em, ultimo_id FROM marcadores_sync WHERE tabela = ? AND fazenda_id = ?;
+
+guardar:
+INSERT OR REPLACE INTO marcadores_sync (tabela, fazenda_id, atualizado_em, ultimo_id)
+VALUES (?, ?, ?, ?);
+
+apagarTodos:
+DELETE FROM marcadores_sync;

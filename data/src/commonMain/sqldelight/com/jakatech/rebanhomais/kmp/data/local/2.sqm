@@ -1,0 +1,8 @@
+-- Versão 2 → 3 (PRD Fase 4, fatia 2): marcador do recebimento por tabela e fazenda.
+CREATE TABLE marcadores_sync (
+    tabela TEXT NOT NULL,
+    fazenda_id TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL,
+    ultimo_id TEXT NOT NULL,
+    PRIMARY KEY (tabela, fazenda_id)
+);

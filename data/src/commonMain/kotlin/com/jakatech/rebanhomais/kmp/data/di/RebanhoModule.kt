@@ -101,7 +101,7 @@ val rebanhoModule: Module = module {
     single<PesagemRepository> { PesagensLocais(get()) }
     single<VacinaRepository> { VacinasLocais(get()) }
     single<ServidorDoRebanho> { ServidorSupabase(get()) }
-    single<SincronizacaoRepository> { SincronizacaoLocal(get(), get(), get()) }
+    single<SincronizacaoRepository> { SincronizacaoLocal(get(), get(), get(), get()) }
 
     // Conta e sessão (Fase 2)
     factory { CriarConta(get()) }

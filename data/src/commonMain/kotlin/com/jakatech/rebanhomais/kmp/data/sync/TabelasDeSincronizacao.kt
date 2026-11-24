@@ -3,6 +3,7 @@ package com.jakatech.rebanhomais.kmp.data.sync
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.db.SqlPreparedStatement
 import com.jakatech.rebanhomais.kmp.domain.model.TipoDeRegistro
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -150,5 +151,104 @@ internal fun SqlDriver.marcarErro(tabela: TabelaDeSincronizacao, linha: LinhaPen
         bindString(1, mensagem)
         bindString(2, linha.id)
         bindString(3, linha.updatedAt)
+    }
+}
+
+/** O que aconteceu com uma linha recebida do servidor. */
+internal enum class Aplicacao {
+    /** Gravada no aparelho como sincronizada. */
+    APLICADA,
+
+    /** O aparelho tem uma alteração ainda não enviada: ela vence até ser enviada (RN-04). */
+    MANTIDA_A_LOCAL,
+
+    /**
+     * Brinco já usado por outro animal só deste aparelho. Esse animal fica com erro de duplicidade
+     * e o recebimento dessa tabela para aqui até ele ser corrigido.
+     */
+    CONFLITO_DE_BRINCO
+}
+
+/**
+ * Grava no aparelho uma linha que veio do servidor, com o updated_at do servidor e como SINCRONIZADO.
+ * Chame dentro de uma transação.
+ */
+internal fun SqlDriver.aplicarDoServidor(tabela: TabelaDeSincronizacao, json: JsonObject): Aplicacao {
+    val id = (json["id"] as? JsonPrimitive)?.contentOrNull ?: return Aplicacao.APLICADA
+    val statusLocal = executeQuery(null, "SELECT sync_status FROM ${tabela.nome} WHERE id = ?", { c ->
+        QueryResult.Value(if (c.next().value) c.getString(0) else null)
+    }, 1) { bindString(0, id) }.value
+    if (statusLocal == "PENDENTE") return Aplicacao.MANTIDA_A_LOCAL
+
+    if (tabela.nome == "animais") {
+        val fazenda = (json["fazenda_id"] as? JsonPrimitive)?.contentOrNull
+        val brinco = (json["brinco"] as? JsonPrimitive)?.contentOrNull
+        val outro = executeQuery(
+            null,
+            "SELECT id FROM animais WHERE fazenda_id = ? AND brinco = ? AND id <> ?",
+            { c -> QueryResult.Value(if (c.next().value) c.getString(0) else null) },
+            3
+        ) {
+            bindString(0, fazenda)
+            bindString(1, brinco)
+            bindString(2, id)
+        }.value
+        if (outro != null) {
+            execute(
+                null,
+                "UPDATE animais SET sync_erro_codigo = '23505', " +
+                    "sync_erro_mensagem = 'Brinco já usado por outro animal desta fazenda no servidor' " +
+                    "WHERE id = ? AND sync_status = 'PENDENTE'",
+                1
+            ) { bindString(0, outro) }
+            return Aplicacao.CONFLITO_DE_BRINCO
+        }
+    }
+
+    val colunas = tabela.colunas.map { it.first } + "updated_at"
+    val tipos = tabela.colunas.map { it.second } + TipoDaColuna.TEXTO
+    val vincular: SqlPreparedStatement.(Int) -> Unit = { inicio ->
+        colunas.forEachIndexed { i, nome ->
+            val valor = json[nome] as? JsonPrimitive
+            val texto = valor?.contentOrNull
+            when (tipos[i]) {
+                TipoDaColuna.TEXTO -> bindString(inicio + i, texto)
+                TipoDaColuna.INTEIRO -> bindLong(inicio + i, texto?.toDoubleOrNull()?.toLong())
+                TipoDaColuna.REAL -> bindDouble(inicio + i, texto?.toDoubleOrNull())
+                TipoDaColuna.BOOLEANO -> bindLong(inicio + i, texto?.toBooleanStrictOrNull()?.let { if (it) 1L else 0L })
+            }
+        }
+    }
+    if (statusLocal == null) {
+        execute(
+            null,
+            "INSERT INTO ${tabela.nome} (${colunas.joinToString(", ")}, sync_status) " +
+                "VALUES (${colunas.joinToString(", ") { "?" }}, 'SINCRONIZADO')",
+            colunas.size
+        ) { vincular(0) }
+    } else {
+        execute(
+            null,
+            "UPDATE ${tabela.nome} SET ${colunas.joinToString(", ") { "$it = ?" }}, sync_status = 'SINCRONIZADO', " +
+                "sync_erro_codigo = NULL, sync_erro_mensagem = NULL WHERE id = ?",
+            colunas.size + 1
+        ) {
+            vincular(0)
+            bindString(colunas.size, id)
+        }
+    }
+    return Aplicacao.APLICADA
+}
+
+/** Apaga do aparelho tudo das fazendas que não estão em [fazendas] (RN-11, RF-12). */
+internal fun SqlDriver.apagarForaDasFazendas(fazendas: Collection<String>) {
+    val marcas = fazendas.joinToString(", ") { "?" }
+    for (tabela in TABELAS_DE_SINCRONIZACAO) {
+        execute(null, "DELETE FROM ${tabela.nome} WHERE fazenda_id NOT IN ($marcas)", fazendas.size) {
+            fazendas.forEachIndexed { i, f -> bindString(i, f) }
+        }
+    }
+    execute(null, "DELETE FROM marcadores_sync WHERE fazenda_id NOT IN ($marcas)", fazendas.size) {
+        fazendas.forEachIndexed { i, f -> bindString(i, f) }
     }
 }

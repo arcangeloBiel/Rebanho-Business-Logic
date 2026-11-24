@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -38,28 +37,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
-
-/** Servidor de mentira: guarda pelo id (como o upsert do Supabase) e responde o que o teste mandar. */
-private class ServidorFalso : ServidorDoRebanho {
-    val tabelas = mutableMapOf<String, MutableMap<String, JsonObject>>()
-    val chamadas = mutableListOf<Pair<String, List<String>>>()
-    var recusarIds = setOf<String>()
-    var indisponivelNaTabela: String? = null
-    var semSessao = false
-    var aoGravar: suspend () -> Unit = {}
-
-    override suspend fun gravar(tabela: String, linhas: List<JsonObject>): RespostaDoServidor {
-        val ids = linhas.map { it.getValue("id").jsonPrimitive.content }
-        chamadas += tabela to ids
-        aoGravar()
-        if (semSessao) return RespostaDoServidor.SemSessao
-        if (tabela == indisponivelNaTabela) return RespostaDoServidor.Indisponivel("sem sinal")
-        if (ids.any { it in recusarIds }) return RespostaDoServidor.Recusado("23505", "duplicate key value violates unique constraint")
-        val destino = tabelas.getOrPut(tabela) { mutableMapOf() }
-        linhas.forEachIndexed { i, json -> destino[ids[i]] = json }
-        return RespostaDoServidor.Aceito
-    }
-}
 
 /** PRD Fase 4, fatia 1: envio do aparelho para o servidor. */
 class EnvioTest {
@@ -74,7 +51,7 @@ class EnvioTest {
     private val vacinas = VacinasLocais(banco, agora = agora)
     private val servidor = ServidorFalso()
     private val settings = MapSettings()
-    private val envio = SincronizacaoLocal(driver, servidor, settings, agora = agora, tamanhoDoLote = 2)
+    private val envio = SincronizacaoLocal(driver, servidor, settings, FazendasFalsas("f1"), agora = agora, tamanhoDoLote = 2)
 
     @AfterTest
     fun fechar() = driver.close()
@@ -142,7 +119,7 @@ class EnvioTest {
 
         envio.enviarPendentes().ok()
 
-        val json = servidor.tabelas["animais"]!!.getValue("a1")
+        val json = servidor.enviados["animais"]!!.getValue("a1")
         assertEquals(TABELAS_DE_SINCRONIZACAO.single { it.nome == "animais" }.colunas.map { it.first }.toSet(), json.keys)
         assertNull(json["updated_at"])
         assertNull(json["sync_status"])
