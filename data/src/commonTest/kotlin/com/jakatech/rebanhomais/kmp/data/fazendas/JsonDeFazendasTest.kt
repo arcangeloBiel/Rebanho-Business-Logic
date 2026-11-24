@@ -53,6 +53,17 @@ class JsonDeFazendasTest {
     }
 
     @Test
+    fun ordena_pelo_nome_ignorando_acentos_e_maiusculas() {
+        val lista = listOf("Boa Vista", "água limpa", "Córrego Fundo", "Cachoeira").map {
+            FazendaDoUsuario(Fazenda(it, it), Papel.DONO)
+        }
+        assertEquals(
+            listOf("água limpa", "Boa Vista", "Cachoeira", "Córrego Fundo"),
+            JsonDeFazendas.ordenar(lista).map { it.fazenda.nome }
+        )
+    }
+
+    @Test
     fun cache_de_outro_usuario_e_ignorado() {
         val texto = JsonDeFazendas.paraCache("u1", listOf(FazendaDoUsuario(Fazenda("f1", "A"), Papel.DONO)))
         assertNull(JsonDeFazendas.deCache(texto, "u2"))

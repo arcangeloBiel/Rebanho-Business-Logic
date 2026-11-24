@@ -79,7 +79,24 @@ internal object JsonDeFazendas {
 
     fun ordenar(fazendas: List<FazendaDoUsuario>): List<FazendaDoUsuario> = fazendas.ordenadas()
 
-    private fun List<FazendaDoUsuario>.ordenadas() = sortedBy { it.fazenda.nome.lowercase() }
+    /** Ordem alfabética ignorando maiúsculas e acentos: "Água Limpa" vem antes de "Boa Vista". */
+    private fun List<FazendaDoUsuario>.ordenadas() = sortedBy { chaveDeOrdenacao(it.fazenda.nome) }
+
+    internal fun chaveDeOrdenacao(nome: String): String = buildString {
+        for (letra in nome.lowercase()) {
+            append(
+                when (letra) {
+                    'á', 'à', 'â', 'ã', 'ä' -> 'a'
+                    'é', 'è', 'ê', 'ë' -> 'e'
+                    'í', 'ì', 'î', 'ï' -> 'i'
+                    'ó', 'ò', 'ô', 'õ', 'ö' -> 'o'
+                    'ú', 'ù', 'û', 'ü' -> 'u'
+                    'ç' -> 'c'
+                    else -> letra
+                }
+            )
+        }
+    }
 
     private fun JsonObject.papel(): Papel? =
         texto("papel")?.let { nome -> Papel.entries.firstOrNull { it.name == nome } }
