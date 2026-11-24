@@ -12,6 +12,7 @@ import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.fakes.MinhasFazendasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.PreferenciasEmMemoria
+import com.jakatech.rebanhomais.kmp.domain.fakes.SincronizacaoEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.falhaCom
 import com.jakatech.rebanhomais.kmp.domain.fakes.sucesso
 import com.jakatech.rebanhomais.kmp.domain.model.EstadoSessao
@@ -193,7 +194,7 @@ class CasosDeContaTest {
         minhasFazendas.criar(Fazenda("f1", "Sítio"))
         preferencias.selecionarFazenda("f1")
 
-        Sair(auth, minhasFazendas, preferencias)()
+        Sair(auth, minhasFazendas, preferencias, SincronizacaoEmMemoria())().sucesso()
 
         assertIs<EstadoSessao.Deslogado>(ObservarSessao(auth, minhasFazendas, preferencias)().first())
         assertTrue(minhasFazendas.fazendas.value.isEmpty())

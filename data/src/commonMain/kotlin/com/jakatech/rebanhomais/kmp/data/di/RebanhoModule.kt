@@ -11,21 +11,29 @@ import com.jakatech.rebanhomais.kmp.data.local.RebanhoDatabase
 import com.jakatech.rebanhomais.kmp.data.local.VacinasLocais
 import com.jakatech.rebanhomais.kmp.data.local.moduloDoBancoLocal
 import com.jakatech.rebanhomais.kmp.data.preferencias.SettingsPreferenciasRepository
+import com.jakatech.rebanhomais.kmp.data.sync.ServidorDoRebanho
+import com.jakatech.rebanhomais.kmp.data.sync.ServidorSupabase
+import com.jakatech.rebanhomais.kmp.data.sync.SincronizacaoLocal
+import com.jakatech.rebanhomais.kmp.data.sync.moduloDeConectividade
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarFazenda
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarLote
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarProtocolo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ConfirmarConta
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.CorrigirBrinco
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CriarConta
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.EditarAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ExcluirAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Entrar
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarMinhasFazendas
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarPendenciasVacinais
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ManterSincronizado
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarHistoricoDoAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarLotes
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarPendenciasVacinais
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarEstadoDaSincronizacao
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarRebanho
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarRegistrosComErro
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarResumoDePeso
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarSessao
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObterCategoria
@@ -38,6 +46,7 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.RegistrarSaida
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.RegistrarVacinacao
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.RenomearLote
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Sair
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.SincronizarAgora
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.SelecionarFazenda
 import com.jakatech.rebanhomais.kmp.domain.comum.GeradorDeId
 import com.jakatech.rebanhomais.kmp.domain.comum.GeradorDeUuid
@@ -50,6 +59,7 @@ import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.SincronizacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
 import com.russhwolf.settings.Settings
 import io.github.jan.supabase.SupabaseClient
@@ -73,7 +83,7 @@ import org.koin.dsl.module
  * protocolos e aplicações de vacina gravam no banco local (Fase 3).
  */
 val rebanhoModule: Module = module {
-    includes(moduloDoBancoLocal)
+    includes(moduloDoBancoLocal, moduloDeConectividade)
 
     single<Relogio> { RelogioDoSistema }
     single<GeradorDeId> { GeradorDeUuid }
@@ -93,6 +103,8 @@ val rebanhoModule: Module = module {
     single<MovimentacaoRepository> { MovimentacoesLocais(get()) }
     single<PesagemRepository> { PesagensLocais(get()) }
     single<VacinaRepository> { VacinasLocais(get()) }
+    single<ServidorDoRebanho> { ServidorSupabase(get()) }
+    single<SincronizacaoRepository> { SincronizacaoLocal(get(), get(), get(), get()) }
 
     // Conta e sessão (Fase 2)
     factory { CriarConta(get()) }
@@ -101,7 +113,7 @@ val rebanhoModule: Module = module {
     factory { Entrar(get()) }
     factory { PedirRecuperacaoDeSenha(get()) }
     factory { RedefinirSenha(get()) }
-    factory { Sair(get(), get(), get()) }
+    factory { Sair(get(), get(), get(), get()) }
     factory { ObservarSessao(get(), get(), get()) }
 
     // Minhas fazendas (Fase 2)
@@ -115,6 +127,7 @@ val rebanhoModule: Module = module {
     factory { RegistrarSaida(get(), get(), get(), get()) }
     factory { ObservarRebanho(get(), get(), get()) }
     factory { EditarAnimal(get(), get()) }
+    factory { CorrigirBrinco(get()) }
     factory { ExcluirAnimal(get(), get()) }
     factory { ObservarHistoricoDoAnimal(get(), get(), get()) }
 
@@ -122,6 +135,12 @@ val rebanhoModule: Module = module {
     factory { CadastrarLote(get(), get()) }
     factory { RenomearLote(get()) }
     factory { ObservarLotes(get(), get(), get()) }
+
+    // Sincronização com o Supabase (Fase 4)
+    factory { ObservarEstadoDaSincronizacao(get()) }
+    factory { ObservarRegistrosComErro(get()) }
+    factory { SincronizarAgora(get()) }
+    single { ManterSincronizado(get(), get(), get()) }
 
     // Pesagens e vacinas (banco local, Fase 3 fatia 3)
     factory { RegistrarPesagem(get(), get(), get(), get()) }

@@ -1,10 +1,12 @@
 package com.jakatech.rebanhomais.kmp.domain.fakes
 
+import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.GeradorDeId
 import com.jakatech.rebanhomais.kmp.domain.comum.Relogio
 import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
+import com.jakatech.rebanhomais.kmp.domain.model.EstadoDaSincronizacao
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.FazendaDoUsuario
 import com.jakatech.rebanhomais.kmp.domain.model.Papel
@@ -13,6 +15,10 @@ import com.jakatech.rebanhomais.kmp.domain.model.Membro
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
+import com.jakatech.rebanhomais.kmp.domain.model.RegistroComErro
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDaSincronizacao
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoEnvio
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoRecebimento
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.FazendaRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.LoteRepository
@@ -20,6 +26,7 @@ import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.SincronizacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,6 +97,36 @@ class AnimaisEmMemoria : AnimalRepository {
             .sortedWith(compareBy({ !it.ativo }, { it.brinco }))
     }
     override suspend fun excluir(animalId: String) { excluidos += animalId; versao.value++ }
+    /** Ids que o servidor já aceitou (RN-12). */
+    val noServidor = mutableSetOf<String>()
+    override suspend fun jaEstaNoServidor(animalId: String) = animalId in noServidor
+}
+
+/** Sincronização de mentira: [online] decide se o envio esvazia os pendentes. */
+class SincronizacaoEmMemoria(pendentes: Int = 0, comErro: Int = 0) : SincronizacaoRepository {
+    val estadoAtual = MutableStateFlow(EstadoDaSincronizacao(pendentes, comErro, null, null, false))
+    override val estado: Flow<EstadoDaSincronizacao> = estadoAtual
+    var online = true
+    var envios = 0
+    var apagou = false
+
+    override fun observarRegistrosComErro(): Flow<List<RegistroComErro>> = MutableStateFlow(emptyList())
+    override suspend fun enviarPendentes(): Resultado<ResumoDoEnvio> {
+        envios++
+        if (!online) return Resultado.Falha(ErroDominio.SemConexao)
+        val enviados = estadoAtual.value.pendentes
+        estadoAtual.value = estadoAtual.value.copy(pendentes = 0)
+        return Resultado.Sucesso(ResumoDoEnvio(enviados, 0, 0))
+    }
+    override suspend fun receberNovidades(): Resultado<ResumoDoRecebimento> = Resultado.Sucesso(ResumoDoRecebimento(0, 0, 0))
+    override suspend fun sincronizar(): Resultado<ResumoDaSincronizacao> = when (val e = enviarPendentes()) {
+        is Resultado.Falha -> e
+        is Resultado.Sucesso -> Resultado.Sucesso(ResumoDaSincronizacao(e.valor, ResumoDoRecebimento(0, 0, 0)))
+    }
+    override suspend fun apagarDadosLocais() {
+        apagou = true
+        estadoAtual.value = EstadoDaSincronizacao(0, 0, null, null, false)
+    }
 }
 
 class LotesEmMemoria : LoteRepository {

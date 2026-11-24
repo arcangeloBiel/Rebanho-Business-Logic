@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   jvm-android:
-    name: JVM, Android e servidor
+    name: JVM e Android
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -25,11 +25,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Testes (core, data, shared) e servidor
-        run: ./gradlew allTests :server:test --stacktrace
+      - name: Testes (core e data)
+        run: ./gradlew allTests --stacktrace
 
-      - name: Build do app Android
-        run: ./gradlew :app:androidApp:assembleDebug --stacktrace
+      # A migração do banco local leva o schema antigo (databases/N.db) ao atual (.sq).
+      - name: Migrações do banco local
+        run: ./gradlew verifySqlDelightMigration --stacktrace
 
   banco:
     name: Banco (Supabase local, RLS)
@@ -48,6 +49,37 @@ jobs:
       - name: Testes do banco (pgTAP)
         run: supabase test db
 
+  integracao:
+    name: Integração (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.3.0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Subir o Supabase local (Postgres, Auth e API)
+        run: supabase start
+
+      # Dois aparelhos sincronizando pelo Supabase local, com RLS e gatilhos de verdade (PRD Fase 4, RNF-06).
+      - name: Testes de integração da sincronização
+        run: |
+          eval "$(supabase status -o env)"
+          export REBANHO_TESTE_URL="$API_URL"
+          export REBANHO_TESTE_CHAVE="${ANON_KEY:-$PUBLISHABLE_KEY}"
+          export REBANHO_TESTE_SERVICO="${SERVICE_ROLE_KEY:-$SECRET_KEY}"
+          export REBANHO_TESTE_OBRIGATORIO=1
+          ./gradlew :data:jvmTest --tests '*IntegracaoSupabaseTest' --rerun --stacktrace
+
   ios:
     name: iOS (simulador)
     runs-on: macos-latest
@@ -64,3 +96,9 @@ jobs:
 
       - name: Testes iOS
         run: ./gradlew iosSimulatorArm64Test --stacktrace
+
+      # Confere que a publicação para o app CMP sai completa (Android, iOS e JVM), sem publicar nada.
+      - name: Publicação local (core e data)
+        run: |
+          ./gradlew publishToMavenLocal -Prebanho.versao=0.0.0-ci --stacktrace
+          ls ~/.m2/repository/com/jakatech/rebanhomais/

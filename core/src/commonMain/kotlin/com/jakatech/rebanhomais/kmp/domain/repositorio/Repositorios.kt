@@ -1,13 +1,19 @@
 package com.jakatech.rebanhomais.kmp.domain.repositorio
 
+import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
+import com.jakatech.rebanhomais.kmp.domain.model.EstadoDaSincronizacao
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.Lote
 import com.jakatech.rebanhomais.kmp.domain.model.Membro
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
+import com.jakatech.rebanhomais.kmp.domain.model.RegistroComErro
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDaSincronizacao
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoEnvio
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoRecebimento
 import kotlinx.coroutines.flow.Flow
 
 /*
@@ -55,6 +61,9 @@ interface AnimalRepository {
 
     /** Quantos animais têm este animal como mãe. Usado para saber se a fêmea já pariu. */
     suspend fun contarFilhos(maeId: String): Int
+
+    /** O animal já foi aceito pelo servidor ou veio dele (PRD Fase 4, RN-12). */
+    suspend fun jaEstaNoServidor(animalId: String): Boolean
 }
 
 interface PesagemRepository {
@@ -89,4 +98,39 @@ interface MovimentacaoRepository {
 
     /** Movimentações do animal em ordem de data, atualizadas a cada mudança. */
     fun observarPorAnimal(animalId: String): Flow<List<Movimentacao>>
+}
+
+/** Sincronização do banco do aparelho com o servidor (PRD Fase 4). */
+interface SincronizacaoRepository {
+    /** Pendentes, com erro, último envio e se está sincronizando, atualizado a cada mudança (RF-07). */
+    val estado: Flow<EstadoDaSincronizacao>
+
+    /** Registros recusados pelo servidor, com o motivo (CA-04.3). */
+    fun observarRegistrosComErro(): Flow<List<RegistroComErro>>
+
+    /**
+     * Envia todos os pendentes (RF-01 a RF-03). Recusas não interrompem o envio: ficam com erro.
+     * Falha com [com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio.SemConexao] ou
+     * [com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio.SemSessao] quando para no meio;
+     * o que já foi aceito fica marcado e o resto segue pendente.
+     */
+    suspend fun enviarPendentes(): Resultado<ResumoDoEnvio>
+
+    /**
+     * Traz do servidor o que mudou nas fazendas do usuário desde o último recebimento, inclusive
+     * exclusões (RF-04); num aparelho vazio, a carga inicial completa, retomável (RF-05).
+     * Apaga do aparelho as fazendas das quais o usuário saiu (RF-12).
+     */
+    suspend fun receberNovidades(): Resultado<ResumoDoRecebimento>
+
+    /** Envia os pendentes e, se der certo, recebe as novidades. */
+    suspend fun sincronizar(): Resultado<ResumoDaSincronizacao>
+
+    /** Apaga do aparelho todo o rebanho, os marcadores e as horas de sincronização (ao sair, RF-10, RNF-05). */
+    suspend fun apagarDadosLocais()
+}
+
+/** Se o aparelho tem internet agora (PRD Fase 4, RF-06). Cada plataforma observa a rede do seu jeito. */
+interface Conectividade {
+    val online: Flow<Boolean>
 }

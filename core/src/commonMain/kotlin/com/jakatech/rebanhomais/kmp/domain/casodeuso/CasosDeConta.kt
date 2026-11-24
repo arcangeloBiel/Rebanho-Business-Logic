@@ -9,9 +9,11 @@ import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeFazenda
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AuthRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.SincronizacaoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 
 /** O e-mail para onde o código foi enviado, já normalizado. A UI leva o usuário para a tela do código. */
 data class ContaCriada(val email: String)
@@ -94,18 +96,31 @@ class RedefinirSenha(private val auth: AuthRepository) {
 }
 
 /**
- * HU-03: sair e apagar do aparelho a sessão, a lista de fazendas e a fazenda selecionada,
- * para que outra pessoa no mesmo celular não veja os dados.
+ * HU-03 (Fase 2) e HU-06 (Fase 4): sair e apagar do aparelho a sessão, as fazendas, a fazenda selecionada
+ * e todo o rebanho, para que outra pessoa no mesmo celular não veja os dados (CA-06.3, RNF-05).
+ *
+ * Antes, tenta enviar o que está só no aparelho (CA-06.1). Se ainda sobrar algo (sem internet ou recusado),
+ * não sai: devolve [ErroDominio.DadosNaoEnviados] com os números (CA-06.2). A tela avisa, com
+ * "Ficar e tentar de novo" em destaque, e só chama de novo com [confirmarPerda] = true depois de o
+ * usuário confirmar duas vezes (RN-10, P-01).
  */
 class Sair(
     private val auth: AuthRepository,
     private val minhasFazendas: MinhasFazendasRepository,
-    private val preferencias: PreferenciasRepository
+    private val preferencias: PreferenciasRepository,
+    private val sincronizacao: SincronizacaoRepository
 ) {
-    suspend operator fun invoke() {
+    suspend operator fun invoke(confirmarPerda: Boolean = false): Resultado<Unit> {
+        sincronizacao.enviarPendentes() // sem internet ou sem sessão, o que sobrar aparece no estado
+        val estado = sincronizacao.estado.first()
+        if (!estado.tudoSalvo && !confirmarPerda) {
+            return Resultado.Falha(ErroDominio.DadosNaoEnviados(estado.pendentes, estado.comErro))
+        }
         auth.sair()
+        sincronizacao.apagarDadosLocais()
         minhasFazendas.limpar()
         preferencias.selecionarFazenda(null)
+        return Resultado.Sucesso(Unit)
     }
 }
 

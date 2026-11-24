@@ -8,14 +8,15 @@ import kotlin.test.assertTrue
 
 /**
  * PRD Fase 3, RNF-04 e R-03: as tabelas do aparelho têm exatamente as colunas do Supabase,
- * mais sync_status. Se alguém mudar um lado sem o outro, este teste falha.
+ * mais as colunas sync_* (só do aparelho). Se alguém mudar um lado sem o outro, este teste falha.
  */
 class SchemaEspelhaSupabaseTest {
 
     private val tabelasDoRebanho = listOf(
         "lotes", "animais", "movimentacoes", "pesagens", "protocolos_sanitarios", "aplicacoes_vacina"
     )
-    private val colunasSoLocais = setOf("sync_status")
+    private val colunasSoLocais = setOf("sync_status", "sync_erro_codigo", "sync_erro_mensagem")
+    private val colunasSoLocaisDeAnimais = setOf("ja_sincronizado")
     private val palavrasQueNaoSaoColunas = setOf("unique", "check", "foreign", "primary", "constraint")
 
     /** Colunas de cada "create table public.x (...)" nas migrations do Supabase (lidas em ordem). */
@@ -59,7 +60,7 @@ class SchemaEspelhaSupabaseTest {
         for (tabela in tabelasDoRebanho) {
             val remotas = supabase[tabela] ?: error("tabela $tabela não encontrada nas migrations do Supabase")
             val locais = colunasNoAparelho(tabela)
-            assertEquals(remotas, locais - colunasSoLocais, "colunas diferentes em $tabela")
+            assertEquals(remotas, locais - colunasSoLocais - colunasSoLocaisDeAnimais, "colunas diferentes em $tabela")
             assertTrue(locais.containsAll(colunasSoLocais), "$tabela sem sync_status")
         }
     }

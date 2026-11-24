@@ -60,7 +60,9 @@ private fun movimentacao(
     createdAt: String,
     updatedAt: String,
     deletedAt: String?,
-    syncStatus: String
+    syncStatus: String,
+    syncErroCodigo: String?,
+    syncErroMensagem: String?
 ) = Movimentacao(
     id = id,
     fazendaId = fazendaId,

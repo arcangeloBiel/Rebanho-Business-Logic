@@ -1,0 +1,14 @@
+-- Versão 1 → 2 (PRD Fase 4, fatia 1): motivo da recusa do servidor em cada tabela do rebanho.
+-- Registro com sync_erro_codigo preenchido fica fora do envio até ser corrigido (RN-06).
+ALTER TABLE lotes ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE lotes ADD COLUMN sync_erro_mensagem TEXT;
+ALTER TABLE animais ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE animais ADD COLUMN sync_erro_mensagem TEXT;
+ALTER TABLE movimentacoes ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE movimentacoes ADD COLUMN sync_erro_mensagem TEXT;
+ALTER TABLE pesagens ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE pesagens ADD COLUMN sync_erro_mensagem TEXT;
+ALTER TABLE protocolos_sanitarios ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE protocolos_sanitarios ADD COLUMN sync_erro_mensagem TEXT;
+ALTER TABLE aplicacoes_vacina ADD COLUMN sync_erro_codigo TEXT;
+ALTER TABLE aplicacoes_vacina ADD COLUMN sync_erro_mensagem TEXT;

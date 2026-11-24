@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    `maven-publish`
     alias(libs.plugins.sqldelight)
 }
 
@@ -24,9 +25,12 @@ sqldelight {
 // Valores padrão em gradle.properties (projeto de desenvolvimento);
 // variáveis de ambiente sobrescrevem (ex.: build de produção no CI).
 // ---------------------------------------------------------------------
+// Variável vazia (ex.: segredo não cadastrado no GitHub) conta como ausente.
 val supabaseUrl: Provider<String> = providers.environmentVariable("REBANHO_SUPABASE_URL")
+    .filter { it.isNotBlank() }
     .orElse(providers.gradleProperty("rebanho.supabase.url"))
 val supabaseChave: Provider<String> = providers.environmentVariable("REBANHO_SUPABASE_CHAVE")
+    .filter { it.isNotBlank() }
     .orElse(providers.gradleProperty("rebanho.supabase.chave"))
 
 val gerarConfiguracaoSupabase = tasks.register("gerarConfiguracaoSupabase") {

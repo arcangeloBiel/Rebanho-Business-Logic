@@ -1,0 +1,25 @@
+-- Estado da sincronização (PRD Fase 4). Só consultas: as colunas sync_* vivem em cada tabela do rebanho.
+
+-- Um item por registro ainda não aceito pelo servidor: nulo = pendente, preenchido = com erro (RF-07).
+naoSincronizados:
+SELECT sync_erro_codigo FROM lotes WHERE sync_status = 'PENDENTE'
+UNION ALL SELECT sync_erro_codigo FROM protocolos_sanitarios WHERE sync_status = 'PENDENTE'
+UNION ALL SELECT sync_erro_codigo FROM animais WHERE sync_status = 'PENDENTE'
+UNION ALL SELECT sync_erro_codigo FROM movimentacoes WHERE sync_status = 'PENDENTE'
+UNION ALL SELECT sync_erro_codigo FROM pesagens WHERE sync_status = 'PENDENTE'
+UNION ALL SELECT sync_erro_codigo FROM aplicacoes_vacina WHERE sync_status = 'PENDENTE';
+
+-- Registros recusados, com uma referência para achar na tela (CA-04.3).
+registrosComErro:
+SELECT 'LOTE' AS tipo, id, nome AS referencia, sync_erro_codigo AS codigo, sync_erro_mensagem AS mensagem
+FROM lotes WHERE sync_erro_codigo IS NOT NULL
+UNION ALL SELECT 'PROTOCOLO', id, nome, sync_erro_codigo, sync_erro_mensagem
+FROM protocolos_sanitarios WHERE sync_erro_codigo IS NOT NULL
+UNION ALL SELECT 'ANIMAL', id, brinco, sync_erro_codigo, sync_erro_mensagem
+FROM animais WHERE sync_erro_codigo IS NOT NULL
+UNION ALL SELECT 'MOVIMENTACAO', id, data, sync_erro_codigo, sync_erro_mensagem
+FROM movimentacoes WHERE sync_erro_codigo IS NOT NULL
+UNION ALL SELECT 'PESAGEM', id, data, sync_erro_codigo, sync_erro_mensagem
+FROM pesagens WHERE sync_erro_codigo IS NOT NULL
+UNION ALL SELECT 'VACINACAO', id, data, sync_erro_codigo, sync_erro_mensagem
+FROM aplicacoes_vacina WHERE sync_erro_codigo IS NOT NULL;

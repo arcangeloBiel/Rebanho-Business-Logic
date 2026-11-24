@@ -7,6 +7,7 @@ import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
 import com.jakatech.rebanhomais.kmp.domain.model.Aptidao
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
+import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeBrinco
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeFazenda
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.LoteRepository
@@ -165,4 +166,24 @@ class ObservarHistoricoDoAnimal(
                 aplicacoes.map { EventoDoHistorico.Vacinou(it) })
                 .sortedBy { it.data }
         }
+}
+
+/**
+ * HU-05 e RN-12 (Fase 4): corrige o brinco de um animal que ainda não chegou ao servidor, por exemplo
+ * recusado por duplicidade. Qualquer papel pode: esse animal só existe no aparelho de quem o cadastrou.
+ * Depois de sincronizado, o brinco é a identificação do PNIB e não muda por correção.
+ * O animal volta a ficar pendente e sem erro, e vai no próximo envio (CA-05.2).
+ */
+class CorrigirBrinco(private val animais: AnimalRepository) {
+    suspend operator fun invoke(animalId: String, novoBrinco: String): Resultado<Animal> {
+        val animal = animais.buscarPorId(animalId) ?: return Resultado.Falha(ErroDominio.AnimalNaoEncontrado(animalId))
+        val brinco = RegrasDeBrinco.normalizar(novoBrinco)
+        RegrasDeBrinco.validar(brinco)?.let { return Resultado.Falha(it) }
+        if (brinco == animal.brinco) return Resultado.Sucesso(animal)
+        if (animais.jaEstaNoServidor(animal.id)) return Resultado.Falha(ErroDominio.BrincoJaSincronizado)
+        if (animais.buscarPorBrinco(animal.fazendaId, brinco) != null) return Resultado.Falha(ErroDominio.BrincoDuplicado(brinco))
+        val corrigido = animal.copy(brinco = brinco)
+        animais.salvar(corrigido)
+        return Resultado.Sucesso(corrigido)
+    }
 }

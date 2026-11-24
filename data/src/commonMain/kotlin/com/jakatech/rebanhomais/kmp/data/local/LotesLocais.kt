@@ -49,5 +49,7 @@ private fun lote(
     createdAt: String,
     updatedAt: String,
     deletedAt: String?,
-    syncStatus: String
+    syncStatus: String,
+    syncErroCodigo: String?,
+    syncErroMensagem: String?
 ) = Lote(id = id, fazendaId = fazendaId, nome = nome)
