@@ -11,7 +11,9 @@ import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
 import com.jakatech.rebanhomais.kmp.domain.model.RegistroComErro
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDaSincronizacao
 import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoEnvio
+import com.jakatech.rebanhomais.kmp.domain.model.ResumoDoRecebimento
 import kotlinx.coroutines.flow.Flow
 
 /*
@@ -95,10 +97,7 @@ interface MovimentacaoRepository {
     fun observarPorAnimal(animalId: String): Flow<List<Movimentacao>>
 }
 
-/**
- * Envio do que foi gravado no aparelho para o servidor (PRD Fase 4).
- * O recebimento entra na fatia 2.
- */
+/** Sincronização do banco do aparelho com o servidor (PRD Fase 4). */
 interface SincronizacaoRepository {
     /** Pendentes, com erro, último envio e se está sincronizando, atualizado a cada mudança (RF-07). */
     val estado: Flow<EstadoDaSincronizacao>
@@ -113,4 +112,19 @@ interface SincronizacaoRepository {
      * o que já foi aceito fica marcado e o resto segue pendente.
      */
     suspend fun enviarPendentes(): Resultado<ResumoDoEnvio>
+
+    /**
+     * Traz do servidor o que mudou nas fazendas do usuário desde o último recebimento, inclusive
+     * exclusões (RF-04); num aparelho vazio, a carga inicial completa, retomável (RF-05).
+     * Apaga do aparelho as fazendas das quais o usuário saiu (RF-12).
+     */
+    suspend fun receberNovidades(): Resultado<ResumoDoRecebimento>
+
+    /** Envia os pendentes e, se der certo, recebe as novidades. */
+    suspend fun sincronizar(): Resultado<ResumoDaSincronizacao>
+}
+
+/** Se o aparelho tem internet agora (PRD Fase 4, RF-06). Cada plataforma observa a rede do seu jeito. */
+interface Conectividade {
+    val online: Flow<Boolean>
 }

@@ -49,6 +49,37 @@ jobs:
       - name: Testes do banco (pgTAP)
         run: supabase test db
 
+  integracao:
+    name: Integração (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.3.0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Subir o Supabase local (Postgres, Auth e API)
+        run: supabase start
+
+      # Dois aparelhos sincronizando pelo Supabase local, com RLS e gatilhos de verdade (PRD Fase 4, RNF-06).
+      - name: Testes de integração da sincronização
+        run: |
+          eval "$(supabase status -o env)"
+          export REBANHO_TESTE_URL="$API_URL"
+          export REBANHO_TESTE_CHAVE="${ANON_KEY:-$PUBLISHABLE_KEY}"
+          export REBANHO_TESTE_SERVICO="${SERVICE_ROLE_KEY:-$SECRET_KEY}"
+          export REBANHO_TESTE_OBRIGATORIO=1
+          ./gradlew :data:jvmTest --tests '*IntegracaoSupabaseTest' --rerun --stacktrace
+
   ios:
     name: iOS (simulador)
     runs-on: macos-latest
