@@ -70,6 +70,10 @@ class AnimaisLocais(
             .mapToList(contexto)
             .map { linhas -> linhas.map { it.paraDominio() } }
 
+    override suspend fun jaEstaNoServidor(animalId: String): Boolean = withContext(contexto) {
+        (q.jaSincronizado(animalId).executeAsOneOrNull() ?: 0L) != 0L
+    }
+
     override suspend fun excluir(animalId: String) = withContext(contexto) {
         q.excluir(agora = agora(), id = animalId)
         Unit

@@ -1,0 +1,3 @@
+-- Versão 3 → 4 (PRD Fase 4, fatia 4, RN-12): marca os animais que já estiveram no servidor.
+ALTER TABLE animais ADD COLUMN ja_sincronizado INTEGER NOT NULL DEFAULT 0;
+UPDATE animais SET ja_sincronizado = 1 WHERE sync_status = 'SINCRONIZADO';

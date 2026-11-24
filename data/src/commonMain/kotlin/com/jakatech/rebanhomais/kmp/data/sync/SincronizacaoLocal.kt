@@ -102,6 +102,17 @@ internal class SincronizacaoLocal(
         }
     }
 
+    override suspend fun apagarDadosLocais() = trava.withLock {
+        withContext(contexto) {
+            banco.transaction { driver.apagarTudo() }
+            driver.notifyListeners(*TABELAS_DE_SINCRONIZACAO.map { it.nome }.toTypedArray())
+        }
+        settings.remove(CHAVE_ULTIMO_ENVIO)
+        settings.remove(CHAVE_ULTIMO_RECEBIMENTO)
+        ultimoEnvio.value = null
+        ultimoRecebimento.value = null
+    }
+
     /** Uma sincronização por vez; o estado mostra "sincronizando" enquanto dura. */
     private suspend fun <T> emAndamento(bloco: suspend () -> T): T = trava.withLock {
         sincronizando.value = true

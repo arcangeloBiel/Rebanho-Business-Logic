@@ -20,6 +20,7 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarFazenda
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarLote
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarProtocolo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ConfirmarConta
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.CorrigirBrinco
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CriarConta
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.EditarAnimal
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ExcluirAnimal
@@ -112,7 +113,7 @@ val rebanhoModule: Module = module {
     factory { Entrar(get()) }
     factory { PedirRecuperacaoDeSenha(get()) }
     factory { RedefinirSenha(get()) }
-    factory { Sair(get(), get(), get()) }
+    factory { Sair(get(), get(), get(), get()) }
     factory { ObservarSessao(get(), get(), get()) }
 
     // Minhas fazendas (Fase 2)
@@ -126,6 +127,7 @@ val rebanhoModule: Module = module {
     factory { RegistrarSaida(get(), get(), get(), get()) }
     factory { ObservarRebanho(get(), get(), get()) }
     factory { EditarAnimal(get(), get()) }
+    factory { CorrigirBrinco(get()) }
     factory { ExcluirAnimal(get(), get()) }
     factory { ObservarHistoricoDoAnimal(get(), get(), get()) }
 

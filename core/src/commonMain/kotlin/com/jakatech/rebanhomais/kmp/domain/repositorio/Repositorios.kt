@@ -61,6 +61,9 @@ interface AnimalRepository {
 
     /** Quantos animais têm este animal como mãe. Usado para saber se a fêmea já pariu. */
     suspend fun contarFilhos(maeId: String): Int
+
+    /** O animal já foi aceito pelo servidor ou veio dele (PRD Fase 4, RN-12). */
+    suspend fun jaEstaNoServidor(animalId: String): Boolean
 }
 
 interface PesagemRepository {
@@ -122,6 +125,9 @@ interface SincronizacaoRepository {
 
     /** Envia os pendentes e, se der certo, recebe as novidades. */
     suspend fun sincronizar(): Resultado<ResumoDaSincronizacao>
+
+    /** Apaga do aparelho todo o rebanho, os marcadores e as horas de sincronização (ao sair, RF-10, RNF-05). */
+    suspend fun apagarDadosLocais()
 }
 
 /** Se o aparelho tem internet agora (PRD Fase 4, RF-06). Cada plataforma observa a rede do seu jeito. */
