@@ -8,14 +8,14 @@ import kotlin.test.assertTrue
 
 /**
  * PRD Fase 3, RNF-04 e R-03: as tabelas do aparelho têm exatamente as colunas do Supabase,
- * mais sync_status. Se alguém mudar um lado sem o outro, este teste falha.
+ * mais as colunas sync_* (só do aparelho). Se alguém mudar um lado sem o outro, este teste falha.
  */
 class SchemaEspelhaSupabaseTest {
 
     private val tabelasDoRebanho = listOf(
         "lotes", "animais", "movimentacoes", "pesagens", "protocolos_sanitarios", "aplicacoes_vacina"
     )
-    private val colunasSoLocais = setOf("sync_status")
+    private val colunasSoLocais = setOf("sync_status", "sync_erro_codigo", "sync_erro_mensagem")
     private val palavrasQueNaoSaoColunas = setOf("unique", "check", "foreign", "primary", "constraint")
 
     /** Colunas de cada "create table public.x (...)" nas migrations do Supabase (lidas em ordem). */

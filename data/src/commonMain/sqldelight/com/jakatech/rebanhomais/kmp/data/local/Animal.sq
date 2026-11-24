@@ -21,6 +21,9 @@ CREATE TABLE animais (
     updated_at TEXT NOT NULL,
     deleted_at TEXT,
     sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO')),
+    -- Fase 4: motivo da recusa do servidor; preenchido = registro com erro, fora do envio até ser corrigido.
+    sync_erro_codigo TEXT,
+    sync_erro_mensagem TEXT,
     UNIQUE (fazenda_id, brinco)
 );
 
@@ -48,7 +51,8 @@ UPDATE animais SET
     fazenda_id = :fazenda_id, brinco = :brinco, sexo = :sexo, origem = :origem,
     data_nascimento = :data_nascimento, nome = :nome, raca = :raca, aptidao = :aptidao,
     mae_id = :mae_id, pai_id = :pai_id, lote_id = :lote_id, reprodutor = :reprodutor,
-    status = :status, observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE'
+    status = :status, observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE',
+    sync_erro_codigo = NULL, sync_erro_mensagem = NULL
 WHERE id = :id;
 
 buscarPorId:
@@ -76,5 +80,6 @@ SELECT count(*) FROM animais WHERE mae_id = ? AND deleted_at IS NULL;
 
 -- RN-03: só marca; nada é apagado do aparelho.
 excluir:
-UPDATE animais SET deleted_at = :agora, updated_at = :agora, sync_status = 'PENDENTE'
+UPDATE animais SET deleted_at = :agora, updated_at = :agora, sync_status = 'PENDENTE',
+    sync_erro_codigo = NULL, sync_erro_mensagem = NULL
 WHERE id = :id AND deleted_at IS NULL;

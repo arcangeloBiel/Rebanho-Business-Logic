@@ -6,7 +6,10 @@ CREATE TABLE lotes (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     deleted_at TEXT,
-    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO')),
+    -- Fase 4: motivo da recusa do servidor; preenchido = registro com erro, fora do envio até ser corrigido.
+    sync_erro_codigo TEXT,
+    sync_erro_mensagem TEXT
 );
 
 CREATE INDEX lotes_fazenda_idx ON lotes (fazenda_id);
@@ -24,7 +27,8 @@ VALUES (:id, :fazenda_id, :nome, :agora, :agora, 'PENDENTE');
 
 -- RN-02: toda alteração volta a ficar pendente. created_at não muda.
 atualizar:
-UPDATE lotes SET fazenda_id = :fazenda_id, nome = :nome, updated_at = :agora, sync_status = 'PENDENTE'
+UPDATE lotes SET fazenda_id = :fazenda_id, nome = :nome, updated_at = :agora, sync_status = 'PENDENTE',
+    sync_erro_codigo = NULL, sync_erro_mensagem = NULL
 WHERE id = :id;
 
 buscarPorId:

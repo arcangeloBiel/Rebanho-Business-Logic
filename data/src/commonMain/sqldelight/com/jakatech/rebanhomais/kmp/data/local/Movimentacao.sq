@@ -11,7 +11,10 @@ CREATE TABLE movimentacoes (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     deleted_at TEXT,
-    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO')),
+    -- Fase 4: motivo da recusa do servidor; preenchido = registro com erro, fora do envio até ser corrigido.
+    sync_erro_codigo TEXT,
+    sync_erro_mensagem TEXT
 );
 
 CREATE INDEX movimentacoes_animal_idx ON movimentacoes (fazenda_id, animal_id);
@@ -34,7 +37,8 @@ atualizar:
 UPDATE movimentacoes SET
     fazenda_id = :fazenda_id, animal_id = :animal_id, tipo = :tipo, data = :data,
     contraparte = :contraparte, valor = :valor, observacao = :observacao,
-    updated_at = :agora, sync_status = 'PENDENTE'
+    updated_at = :agora, sync_status = 'PENDENTE',
+    sync_erro_codigo = NULL, sync_erro_mensagem = NULL
 WHERE id = :id;
 
 listarPorAnimal:
