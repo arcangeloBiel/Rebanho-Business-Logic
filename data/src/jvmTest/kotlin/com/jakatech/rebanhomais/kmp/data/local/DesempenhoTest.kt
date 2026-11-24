@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.TimeSource
+import kotlin.time.measureTime
 
 /**
  * PRD Fase 3, RNF-02 (fatia 4): fazenda com 5.000 animais.
@@ -52,7 +52,7 @@ class DesempenhoTest {
     /** Mediana de [vezes] medições, depois de aquecer: um pico isolado do CI não reprova o teste. */
     private suspend fun mediana(vezes: Int = 7, bloco: suspend () -> Unit): Duration {
         repeat(2) { bloco() }
-        val tempos = List(vezes) { TimeSource.Monotonic.measureTime { bloco() } }
+        val tempos = List(vezes) { measureTime { bloco() } }
         return tempos.sorted()[vezes / 2]
     }
 
