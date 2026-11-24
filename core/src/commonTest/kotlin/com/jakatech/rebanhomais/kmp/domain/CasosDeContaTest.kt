@@ -8,9 +8,12 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.ReenviarCodigo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.Sair
 import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
+import com.jakatech.rebanhomais.kmp.domain.fakes.MinhasFazendasEmMemoria
+import com.jakatech.rebanhomais.kmp.domain.fakes.PreferenciasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.falhaCom
 import com.jakatech.rebanhomais.kmp.domain.fakes.sucesso
 import com.jakatech.rebanhomais.kmp.domain.model.EstadoSessao
+import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.Usuario
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +52,8 @@ private class AuthFalso : AuthRepository {
 
 class CasosDeContaTest {
     private val auth = AuthFalso()
+    private val minhasFazendas = MinhasFazendasEmMemoria()
+    private val preferencias = PreferenciasEmMemoria()
 
     // HU-01
 
@@ -131,16 +136,23 @@ class CasosDeContaTest {
     // HU-03
 
     @Test
-    fun ca_03_1_sair_deixa_a_sessao_deslogada() = runTest {
+    fun ca_03_1_sair_deixa_a_sessao_deslogada_e_limpa_fazendas_e_selecao() = runTest {
         auth.sessao.value = EstadoSessao.Logado(Usuario("u1", "ana@teste.com"))
-        Sair(auth)()
-        assertIs<EstadoSessao.Deslogado>(ObservarSessao(auth)().first())
+        minhasFazendas.criar(Fazenda("f1", "Sítio"))
+        preferencias.selecionarFazenda("f1")
+
+        Sair(auth, minhasFazendas, preferencias)()
+
+        assertIs<EstadoSessao.Deslogado>(ObservarSessao(auth, minhasFazendas, preferencias)().first())
+        assertTrue(minhasFazendas.fazendas.value.isEmpty())
+        assertNull(preferencias.fazendaSelecionadaId.value)
         assertEquals(listOf("sair"), auth.chamadas)
     }
 
     @Test
-    fun estado_logado_comeca_sem_fazendas_ate_a_fatia_3() {
-        val logado = EstadoSessao.Logado(Usuario("u1", "ana@teste.com"))
+    fun logado_sem_fazendas_fica_sem_selecionada() = runTest {
+        auth.sessao.value = EstadoSessao.Logado(Usuario("u1", "ana@teste.com"))
+        val logado = assertIs<EstadoSessao.Logado>(ObservarSessao(auth, minhasFazendas, preferencias)().first())
         assertTrue(logado.fazendas.isEmpty())
         assertNull(logado.fazendaSelecionada)
         assertEquals(false, logado.semConexao)

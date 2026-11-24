@@ -3,6 +3,7 @@ package com.jakatech.rebanhomais.kmp.data
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
 
 /**
  * Cliente único do Supabase do app.
@@ -19,4 +20,6 @@ internal fun criarClienteSupabase(
         // Renova o token sozinho quando há internet (RF-04).
         alwaysAutoRefresh = true
     }
+    // Tabelas e funções do banco (RLS garante o acesso por fazenda).
+    install(Postgrest)
 }

@@ -67,6 +67,8 @@ kotlin {
                 api(libs.koin.core)
                 implementation(project.dependencies.platform(libs.supabase.bom))
                 implementation(libs.supabase.auth)
+                implementation(libs.supabase.postgrest)
+                implementation(libs.multiplatform.settings.noArg)
                 implementation(libs.kotlinx.serialization.json)
             }
         }

@@ -1,10 +1,8 @@
 package com.jakatech.rebanhomais.kmp.domain
 
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarAnimal
-import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarFazenda
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarProtocolo
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarPendenciasVacinais
-import com.jakatech.rebanhomais.kmp.domain.casodeuso.NovaFazenda
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.NovaPesagem
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.NovaSaida
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.NovaVacinacao
@@ -18,7 +16,6 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.RegistrarVacinacao
 import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.MotivoGenitorInvalido
 import com.jakatech.rebanhomais.kmp.domain.fakes.AnimaisEmMemoria
-import com.jakatech.rebanhomais.kmp.domain.fakes.FazendasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.HOJE
 import com.jakatech.rebanhomais.kmp.domain.fakes.IdsSequenciais
 import com.jakatech.rebanhomais.kmp.domain.fakes.MovimentacoesEmMemoria
@@ -29,7 +26,6 @@ import com.jakatech.rebanhomais.kmp.domain.fakes.falhaCom
 import com.jakatech.rebanhomais.kmp.domain.fakes.sucesso
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.Origem
-import com.jakatech.rebanhomais.kmp.domain.model.Papel
 import com.jakatech.rebanhomais.kmp.domain.model.Sexo
 import com.jakatech.rebanhomais.kmp.domain.model.StatusAnimal
 import com.jakatech.rebanhomais.kmp.domain.model.TipoMovimentacao
@@ -45,7 +41,6 @@ import kotlin.test.assertTrue
 class CasosDeUsoTest {
     private val ids = IdsSequenciais()
     private val relogio = RelogioFixo()
-    private val fazendas = FazendasEmMemoria()
     private val animais = AnimaisEmMemoria()
     private val movimentacoes = MovimentacoesEmMemoria()
     private val pesagens = PesagensEmMemoria()
@@ -63,21 +58,6 @@ class CasosDeUsoTest {
 
     private suspend fun vaca(): Animal =
         cadastrarAnimal(nascido("V1", Sexo.FEMEA, LocalDate(2021, 5, 1))).sucesso()
-
-    // Fazenda
-
-    @Test
-    fun cadastrar_fazenda_registra_o_criador_como_dono() = runTest {
-        val fazenda = CadastrarFazenda(fazendas, ids)(NovaFazenda(nome = " Sítio Boa Vista ", donoUsuarioId = "u1", uf = "mg")).sucesso()
-        assertEquals("Sítio Boa Vista", fazenda.nome)
-        assertEquals("MG", fazenda.uf)
-        assertEquals(Papel.DONO, fazendas.listarMembros(fazenda.id).single().papel)
-    }
-
-    @Test
-    fun fazenda_sem_nome_falha() = runTest {
-        CadastrarFazenda(fazendas, ids)(NovaFazenda(nome = "  ", donoUsuarioId = "u1")).falhaCom<ErroDominio.NomeObrigatorio>()
-    }
 
     // Animal
 

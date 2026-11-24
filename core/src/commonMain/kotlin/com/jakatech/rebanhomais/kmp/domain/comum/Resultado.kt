@@ -27,6 +27,14 @@ sealed interface ErroDominio {
     data class DoseInvalida(val dose: Int, val dosesDoProtocolo: Int) : ErroDominio
     data object TipoDeSaidaInvalido : ErroDominio
 
+    // Fazendas (PRD Fase 2, fatia 3)
+    /** UF precisa ter 2 letras, como "MG". */
+    data object UfInvalida : ErroDominio
+    /** A fazenda não está entre as fazendas do usuário. */
+    data class FazendaNaoEncontrada(val fazendaId: String) : ErroDominio
+    /** O servidor recusou por falta de permissão (RLS). */
+    data object SemPermissao : ErroDominio
+
     // Conta e sessão (PRD Fase 2, RF-12)
     data object EmailInvalido : ErroDominio
     data class SenhaFraca(val minimoDeCaracteres: Int) : ErroDominio

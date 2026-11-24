@@ -6,15 +6,20 @@ import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
+import com.jakatech.rebanhomais.kmp.domain.model.FazendaDoUsuario
+import com.jakatech.rebanhomais.kmp.domain.model.Papel
 import com.jakatech.rebanhomais.kmp.domain.model.Membro
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.model.ProtocoloSanitario
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.FazendaRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
 import kotlin.test.assertIs
 import kotlin.test.fail
@@ -39,6 +44,24 @@ class FazendasEmMemoria : FazendaRepository {
         membros.filter { it.usuarioId == usuarioId }.mapNotNull { fazendas[it.fazendaId] }
     override suspend fun salvarMembro(membro: Membro) { membros += membro }
     override suspend fun listarMembros(fazendaId: String) = membros.filter { it.fazendaId == fazendaId }
+}
+
+class MinhasFazendasEmMemoria : MinhasFazendasRepository {
+    override val fazendas = MutableStateFlow<List<FazendaDoUsuario>>(emptyList())
+    var falhaAoCriar: Resultado<FazendaDoUsuario>? = null
+    override suspend fun atualizar(): Resultado<List<FazendaDoUsuario>> = Resultado.Sucesso(fazendas.value)
+    override suspend fun criar(fazenda: Fazenda): Resultado<FazendaDoUsuario> {
+        falhaAoCriar?.let { return it }
+        val item = FazendaDoUsuario(fazenda, Papel.DONO)
+        fazendas.value = fazendas.value + item
+        return Resultado.Sucesso(item)
+    }
+    override suspend fun limpar() { fazendas.value = emptyList() }
+}
+
+class PreferenciasEmMemoria : PreferenciasRepository {
+    override val fazendaSelecionadaId = MutableStateFlow<String?>(null)
+    override suspend fun selecionarFazenda(fazendaId: String?) { fazendaSelecionadaId.value = fazendaId }
 }
 
 class AnimaisEmMemoria : AnimalRepository {
