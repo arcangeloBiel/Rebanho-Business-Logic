@@ -1,0 +1,30 @@
+# Configuração do Supabase local (CLI). Usada pelo CI para rodar os testes do banco.
+# O projeto remoto de desenvolvimento é o "rebanho+" (sa-east-1).
+project_id = "rebanho-mais"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true

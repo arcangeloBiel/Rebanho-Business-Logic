@@ -18,6 +18,7 @@ dependencies {
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 
 android {
@@ -48,6 +49,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // supabase-kt pede Android 8 (SDK 26); com desugaring o app continua rodando a partir do SDK 24.
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true

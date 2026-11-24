@@ -1,0 +1,51 @@
+-- Espelha public.protocolos_sanitarios do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE protocolos_sanitarios (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    doses INTEGER NOT NULL DEFAULT 1,
+    intervalo_entre_doses_dias INTEGER,
+    reforco_dias INTEGER,
+    sexo_alvo TEXT CHECK (sexo_alvo IS NULL OR sexo_alvo IN ('FEMEA', 'MACHO')),
+    idade_minima_meses INTEGER,
+    idade_maxima_meses INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX protocolos_fazenda_idx ON protocolos_sanitarios (fazenda_id);
+CREATE INDEX protocolos_sync_idx ON protocolos_sanitarios (sync_status);
+
+contar:
+SELECT count(*) FROM protocolos_sanitarios;
+
+existe:
+SELECT count(*) FROM protocolos_sanitarios WHERE id = ?;
+
+inserir:
+INSERT INTO protocolos_sanitarios (
+    id, fazenda_id, nome, doses, intervalo_entre_doses_dias, reforco_dias, sexo_alvo,
+    idade_minima_meses, idade_maxima_meses, created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :nome, :doses, :intervalo_entre_doses_dias, :reforco_dias, :sexo_alvo,
+    :idade_minima_meses, :idade_maxima_meses, :agora, :agora, 'PENDENTE'
+);
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE protocolos_sanitarios SET
+    fazenda_id = :fazenda_id, nome = :nome, doses = :doses,
+    intervalo_entre_doses_dias = :intervalo_entre_doses_dias, reforco_dias = :reforco_dias,
+    sexo_alvo = :sexo_alvo, idade_minima_meses = :idade_minima_meses, idade_maxima_meses = :idade_maxima_meses,
+    updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+buscarPorId:
+SELECT * FROM protocolos_sanitarios WHERE id = ? AND deleted_at IS NULL;
+
+listarPorFazenda:
+SELECT * FROM protocolos_sanitarios
+WHERE fazenda_id = ? AND deleted_at IS NULL
+ORDER BY nome COLLATE NOCASE, created_at;

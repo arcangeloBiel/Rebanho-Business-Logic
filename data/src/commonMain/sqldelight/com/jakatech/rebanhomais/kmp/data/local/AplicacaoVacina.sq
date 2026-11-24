@@ -1,0 +1,53 @@
+-- Espelha public.aplicacoes_vacina do Supabase. sync_status é só local (Fase 4).
+CREATE TABLE aplicacoes_vacina (
+    id TEXT NOT NULL PRIMARY KEY,
+    fazenda_id TEXT NOT NULL,
+    animal_id TEXT NOT NULL,
+    protocolo_id TEXT,
+    nome_vacina TEXT NOT NULL,
+    data TEXT NOT NULL,
+    dose INTEGER NOT NULL DEFAULT 1,
+    lote_produto TEXT,
+    observacao TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'PENDENTE' CHECK (sync_status IN ('PENDENTE', 'SINCRONIZADO'))
+);
+
+CREATE INDEX aplicacoes_vacina_animal_idx ON aplicacoes_vacina (fazenda_id, animal_id);
+CREATE INDEX aplicacoes_vacina_sync_idx ON aplicacoes_vacina (sync_status);
+
+contar:
+SELECT count(*) FROM aplicacoes_vacina;
+
+existe:
+SELECT count(*) FROM aplicacoes_vacina WHERE id = ?;
+
+inserir:
+INSERT INTO aplicacoes_vacina (
+    id, fazenda_id, animal_id, protocolo_id, nome_vacina, data, dose, lote_produto, observacao,
+    created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :animal_id, :protocolo_id, :nome_vacina, :data, :dose, :lote_produto, :observacao,
+    :agora, :agora, 'PENDENTE'
+);
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE aplicacoes_vacina SET
+    fazenda_id = :fazenda_id, animal_id = :animal_id, protocolo_id = :protocolo_id,
+    nome_vacina = :nome_vacina, data = :data, dose = :dose, lote_produto = :lote_produto,
+    observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+listarPorAnimal:
+SELECT * FROM aplicacoes_vacina
+WHERE animal_id = ? AND deleted_at IS NULL
+ORDER BY data, dose, created_at;
+
+-- Usado pelas pendências (RF-08). O índice (fazenda_id, animal_id) cobre o filtro por fazenda.
+listarPorFazenda:
+SELECT * FROM aplicacoes_vacina
+WHERE fazenda_id = ? AND deleted_at IS NULL
+ORDER BY data, dose, created_at;
