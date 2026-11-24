@@ -17,3 +17,25 @@ CREATE INDEX pesagens_sync_idx ON pesagens (sync_status);
 
 contar:
 SELECT count(*) FROM pesagens;
+
+existe:
+SELECT count(*) FROM pesagens WHERE id = ?;
+
+inserir:
+INSERT INTO pesagens (
+    id, fazenda_id, animal_id, data, peso_kg, observacao, created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :animal_id, :data, :peso_kg, :observacao, :agora, :agora, 'PENDENTE'
+);
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE pesagens SET
+    fazenda_id = :fazenda_id, animal_id = :animal_id, data = :data, peso_kg = :peso_kg,
+    observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+listarPorAnimal:
+SELECT * FROM pesagens
+WHERE animal_id = ? AND deleted_at IS NULL
+ORDER BY data, created_at;

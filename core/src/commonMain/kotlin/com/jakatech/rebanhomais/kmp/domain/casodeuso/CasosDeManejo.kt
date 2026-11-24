@@ -10,6 +10,8 @@ import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeData
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDePeso
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
 /** Busca um animal que precisa existir e estar ativo para receber um manejo. */
@@ -62,16 +64,26 @@ data class ResumoDePeso(
     val totalDePesagens: Int
 )
 
+private fun resumir(lista: List<Pesagem>) = ResumoDePeso(
+    ultimaPesagem = lista.maxByOrNull { it.data },
+    ganhoMedioDiario = RegrasDePeso.ganhoMedioDiario(lista),
+    ganhoRecente = RegrasDePeso.ganhoRecente(lista),
+    totalDePesagens = lista.size
+)
+
 class ObterResumoDePeso(
     private val pesagens: PesagemRepository
 ) {
-    suspend operator fun invoke(animalId: String): ResumoDePeso {
-        val lista = pesagens.listarPorAnimal(animalId)
-        return ResumoDePeso(
-            ultimaPesagem = lista.maxByOrNull { it.data },
-            ganhoMedioDiario = RegrasDePeso.ganhoMedioDiario(lista),
-            ganhoRecente = RegrasDePeso.ganhoRecente(lista),
-            totalDePesagens = lista.size
-        )
-    }
+    suspend operator fun invoke(animalId: String): ResumoDePeso = resumir(pesagens.listarPorAnimal(animalId))
+}
+
+/**
+ * HU-04: o resumo de peso do animal, recalculado a cada pesagem lançada (CA-04.1, O4).
+ * A tela do animal observa este fluxo e mostra o valor novo sem recarregar.
+ */
+class ObservarResumoDePeso(
+    private val pesagens: PesagemRepository
+) {
+    operator fun invoke(animalId: String): Flow<ResumoDePeso> =
+        pesagens.observarPorAnimal(animalId).map(::resumir)
 }

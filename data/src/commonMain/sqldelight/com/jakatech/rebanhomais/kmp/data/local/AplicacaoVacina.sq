@@ -20,3 +20,34 @@ CREATE INDEX aplicacoes_vacina_sync_idx ON aplicacoes_vacina (sync_status);
 
 contar:
 SELECT count(*) FROM aplicacoes_vacina;
+
+existe:
+SELECT count(*) FROM aplicacoes_vacina WHERE id = ?;
+
+inserir:
+INSERT INTO aplicacoes_vacina (
+    id, fazenda_id, animal_id, protocolo_id, nome_vacina, data, dose, lote_produto, observacao,
+    created_at, updated_at, sync_status
+) VALUES (
+    :id, :fazenda_id, :animal_id, :protocolo_id, :nome_vacina, :data, :dose, :lote_produto, :observacao,
+    :agora, :agora, 'PENDENTE'
+);
+
+-- RN-02: toda alteração volta a ficar pendente. created_at não muda.
+atualizar:
+UPDATE aplicacoes_vacina SET
+    fazenda_id = :fazenda_id, animal_id = :animal_id, protocolo_id = :protocolo_id,
+    nome_vacina = :nome_vacina, data = :data, dose = :dose, lote_produto = :lote_produto,
+    observacao = :observacao, updated_at = :agora, sync_status = 'PENDENTE'
+WHERE id = :id;
+
+listarPorAnimal:
+SELECT * FROM aplicacoes_vacina
+WHERE animal_id = ? AND deleted_at IS NULL
+ORDER BY data, dose, created_at;
+
+-- Usado pelas pendências (RF-08). O índice (fazenda_id, animal_id) cobre o filtro por fazenda.
+listarPorFazenda:
+SELECT * FROM aplicacoes_vacina
+WHERE fazenda_id = ? AND deleted_at IS NULL
+ORDER BY data, dose, created_at;

@@ -92,19 +92,42 @@ class AnimaisEmMemoria : AnimalRepository {
 
 class PesagensEmMemoria : PesagemRepository {
     val pesagens = mutableListOf<Pesagem>()
-    override suspend fun salvar(pesagem: Pesagem) { pesagens += pesagem }
-    override suspend fun listarPorAnimal(animalId: String) = pesagens.filter { it.animalId == animalId }
+    private val versao = MutableStateFlow(0)
+    override suspend fun salvar(pesagem: Pesagem) {
+        pesagens.removeAll { it.id == pesagem.id }
+        pesagens += pesagem
+        versao.value++
+    }
+    override suspend fun listarPorAnimal(animalId: String) =
+        pesagens.filter { it.animalId == animalId }.sortedBy { it.data }
+    override fun observarPorAnimal(animalId: String): Flow<List<Pesagem>> = versao.map { listarPorAnimal(animalId) }
 }
 
 class VacinasEmMemoria : VacinaRepository {
     val protocolos = mutableMapOf<String, ProtocoloSanitario>()
     val aplicacoes = mutableListOf<AplicacaoVacina>()
-    override suspend fun salvarProtocolo(protocolo: ProtocoloSanitario) { protocolos[protocolo.id] = protocolo }
+    private val versao = MutableStateFlow(0)
+    private val ordem = compareBy<AplicacaoVacina>({ it.data }, { it.dose })
+
+    override suspend fun salvarProtocolo(protocolo: ProtocoloSanitario) { protocolos[protocolo.id] = protocolo; versao.value++ }
     override suspend fun buscarProtocolo(protocoloId: String) = protocolos[protocoloId]
-    override suspend fun listarProtocolos(fazendaId: String) = protocolos.values.filter { it.fazendaId == fazendaId }
-    override suspend fun salvarAplicacao(aplicacao: AplicacaoVacina) { aplicacoes += aplicacao }
-    override suspend fun listarAplicacoesPorAnimal(animalId: String) = aplicacoes.filter { it.animalId == animalId }
-    override suspend fun listarAplicacoesPorFazenda(fazendaId: String) = aplicacoes.filter { it.fazendaId == fazendaId }
+    override suspend fun listarProtocolos(fazendaId: String) =
+        protocolos.values.filter { it.fazendaId == fazendaId }.sortedBy { it.nome.lowercase() }
+    override suspend fun salvarAplicacao(aplicacao: AplicacaoVacina) {
+        aplicacoes.removeAll { it.id == aplicacao.id }
+        aplicacoes += aplicacao
+        versao.value++
+    }
+    override suspend fun listarAplicacoesPorAnimal(animalId: String) =
+        aplicacoes.filter { it.animalId == animalId }.sortedWith(ordem)
+    override suspend fun listarAplicacoesPorFazenda(fazendaId: String) =
+        aplicacoes.filter { it.fazendaId == fazendaId }.sortedWith(ordem)
+    override fun observarProtocolos(fazendaId: String): Flow<List<ProtocoloSanitario>> =
+        versao.map { listarProtocolos(fazendaId) }
+    override fun observarAplicacoesPorAnimal(animalId: String): Flow<List<AplicacaoVacina>> =
+        versao.map { listarAplicacoesPorAnimal(animalId) }
+    override fun observarAplicacoesPorFazenda(fazendaId: String): Flow<List<AplicacaoVacina>> =
+        versao.map { listarAplicacoesPorFazenda(fazendaId) }
 }
 
 class MovimentacoesEmMemoria : MovimentacaoRepository {
