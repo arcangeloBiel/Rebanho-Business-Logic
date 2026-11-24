@@ -29,7 +29,12 @@ interface FazendaRepository {
 
 interface LoteRepository {
     suspend fun salvar(lote: Lote)
+    suspend fun buscarPorId(loteId: String): Lote?
+    /** Lotes da fazenda em ordem de nome. */
     suspend fun listarPorFazenda(fazendaId: String): List<Lote>
+
+    /** Lotes da fazenda em ordem de nome, atualizados a cada mudança (PRD Fase 3, O4). */
+    fun observarPorFazenda(fazendaId: String): Flow<List<Lote>>
 }
 
 interface AnimalRepository {

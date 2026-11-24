@@ -155,7 +155,7 @@ class ManejoLocalTest {
     private val ids = GeradorDeId { "id-${++proximoId}" }
     private val hoje = Relogio { LocalDate(2026, 11, 23) }
 
-    private suspend fun bezerro(): String = CadastrarAnimal(animais, movimentacoes, ids, hoje)(
+    private suspend fun bezerro(): String = CadastrarAnimal(animais, movimentacoes, LotesLocais(banco, agora = agora), ids, hoje)(
         NovoAnimal(fazendaId = "f1", brinco = "B1", sexo = Sexo.MACHO, origem = Origem.NASCIDO_NA_FAZENDA,
             dataNascimento = LocalDate(2026, 3, 1))
     ).ok().id

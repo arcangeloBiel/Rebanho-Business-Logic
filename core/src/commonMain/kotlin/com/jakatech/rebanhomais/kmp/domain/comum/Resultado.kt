@@ -26,6 +26,8 @@ sealed interface ErroDominio {
     data class ProtocoloNaoEncontrado(val protocoloId: String) : ErroDominio
     data class DoseInvalida(val dose: Int, val dosesDoProtocolo: Int) : ErroDominio
     data object TipoDeSaidaInvalido : ErroDominio
+    /** O lote não existe, foi excluído ou é de outra fazenda (o servidor recusaria: FK (fazenda_id, lote_id)). */
+    data class LoteNaoEncontrado(val loteId: String) : ErroDominio
 
     // Fazendas (PRD Fase 2, fatia 3)
     /** UF precisa ter 2 letras, como "MG". */

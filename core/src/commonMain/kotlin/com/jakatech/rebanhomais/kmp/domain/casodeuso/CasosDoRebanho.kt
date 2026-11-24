@@ -9,6 +9,7 @@ import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
 import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeFazenda
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.LoteRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
@@ -25,7 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
 /*
- * Casos de uso do rebanho que dependem do banco local (PRD Fase 3, fatias 2 e 3).
+ * Casos de uso do rebanho que dependem do banco local (PRD Fase 3, fatias 2 a 4).
  */
 
 /**
@@ -78,12 +79,21 @@ data class EdicaoDeAnimal(
     val observacao: String?
 )
 
-/** HU-03: corrige os dados descritivos de um animal ativo (CA-03.1). Qualquer papel pode. */
-class EditarAnimal(private val animais: AnimalRepository) {
+/**
+ * HU-03: corrige os dados descritivos de um animal ativo (CA-03.1). Qualquer papel pode.
+ * Um lote novo precisa ser da mesma fazenda; manter o lote atual sempre vale.
+ */
+class EditarAnimal(
+    private val animais: AnimalRepository,
+    private val lotes: LoteRepository
+) {
     suspend operator fun invoke(edicao: EdicaoDeAnimal): Resultado<Animal> {
         val animal = when (val r = animais.animalAtivo(edicao.animalId)) {
             is Resultado.Falha -> return r
             is Resultado.Sucesso -> r.valor
+        }
+        if (edicao.loteId != animal.loteId) {
+            lotes.validarDaFazenda(edicao.loteId, animal.fazendaId)?.let { return Resultado.Falha(it) }
         }
         val editado = animal.copy(
             nome = edicao.nome?.trim()?.ifEmpty { null },

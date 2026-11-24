@@ -18,6 +18,7 @@ import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.fakes.AnimaisEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.HOJE
 import com.jakatech.rebanhomais.kmp.domain.fakes.IdsSequenciais
+import com.jakatech.rebanhomais.kmp.domain.fakes.LotesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MinhasFazendasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MovimentacoesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.PesagensEmMemoria
@@ -48,6 +49,7 @@ import kotlin.test.assertTrue
 /** PRD Fase 3, fatia 3: pesagens, vacinas e pendências que se atualizam sozinhas (HU-04, HU-06, RF-07, RF-08). */
 class CasosDeManejoObservaveisTest {
     private val animais = AnimaisEmMemoria()
+    private val lotes = LotesEmMemoria()
     private val movimentacoes = MovimentacoesEmMemoria()
     private val pesagens = PesagensEmMemoria()
     private val vacinas = VacinasEmMemoria()
@@ -56,7 +58,7 @@ class CasosDeManejoObservaveisTest {
     private val ids = IdsSequenciais()
     private val relogio = RelogioFixo()
 
-    private val cadastrar = CadastrarAnimal(animais, movimentacoes, ids, relogio)
+    private val cadastrar = CadastrarAnimal(animais, movimentacoes, lotes, ids, relogio)
     private val pesar = RegistrarPesagem(animais, pesagens, ids, relogio)
     private val vacinar = RegistrarVacinacao(animais, vacinas, ids, relogio)
     private val novoProtocolo = CadastrarProtocolo(vacinas, ids)

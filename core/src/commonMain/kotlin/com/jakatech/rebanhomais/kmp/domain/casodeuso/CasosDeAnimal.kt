@@ -16,6 +16,7 @@ import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeBrinco
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeCategoria
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeData
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.LoteRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
 import kotlinx.datetime.LocalDate
 
@@ -47,6 +48,7 @@ data class NovoAnimal(
 class CadastrarAnimal(
     private val animais: AnimalRepository,
     private val movimentacoes: MovimentacaoRepository,
+    private val lotes: LoteRepository,
     private val ids: GeradorDeId,
     private val relogio: Relogio
 ) {
@@ -73,6 +75,7 @@ class CadastrarAnimal(
 
         validarGenitor(novo.maeId, Sexo.FEMEA, novo)?.let { return Resultado.Falha(ErroDominio.GenitorInvalido(it)) }
         validarGenitor(novo.paiId, Sexo.MACHO, novo)?.let { return Resultado.Falha(ErroDominio.GenitorInvalido(it)) }
+        lotes.validarDaFazenda(novo.loteId, novo.fazendaId)?.let { return Resultado.Falha(it) }
 
         val animal = Animal(
             id = ids.novo(),

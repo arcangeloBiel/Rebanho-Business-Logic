@@ -14,6 +14,7 @@ import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.fakes.AnimaisEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.HOJE
 import com.jakatech.rebanhomais.kmp.domain.fakes.IdsSequenciais
+import com.jakatech.rebanhomais.kmp.domain.fakes.LotesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MinhasFazendasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MovimentacoesEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.PesagensEmMemoria
@@ -26,6 +27,7 @@ import com.jakatech.rebanhomais.kmp.domain.model.Animal
 import com.jakatech.rebanhomais.kmp.domain.model.Aptidao
 import com.jakatech.rebanhomais.kmp.domain.model.Fazenda
 import com.jakatech.rebanhomais.kmp.domain.model.FazendaDoUsuario
+import com.jakatech.rebanhomais.kmp.domain.model.Lote
 import com.jakatech.rebanhomais.kmp.domain.model.Origem
 import com.jakatech.rebanhomais.kmp.domain.model.Papel
 import com.jakatech.rebanhomais.kmp.domain.model.Sexo
@@ -44,15 +46,16 @@ import kotlin.test.assertTrue
 /** PRD Fase 3, fatia 2: rebanho observável, edição, exclusão e histórico. */
 class CasosDoRebanhoTest {
     private val animais = AnimaisEmMemoria()
+    private val lotes = LotesEmMemoria()
     private val movimentacoes = MovimentacoesEmMemoria()
     private val minhasFazendas = MinhasFazendasEmMemoria()
     private val preferencias = PreferenciasEmMemoria()
     private val ids = IdsSequenciais()
     private val relogio = RelogioFixo()
 
-    private val cadastrar = CadastrarAnimal(animais, movimentacoes, ids, relogio)
+    private val cadastrar = CadastrarAnimal(animais, movimentacoes, lotes, ids, relogio)
     private val observar = ObservarRebanho(animais, minhasFazendas, preferencias)
-    private val editar = EditarAnimal(animais)
+    private val editar = EditarAnimal(animais, lotes)
     private val excluir = ExcluirAnimal(animais, minhasFazendas)
     private val saida = RegistrarSaida(animais, movimentacoes, ids, relogio)
     private val historico = ObservarHistoricoDoAnimal(movimentacoes, PesagensEmMemoria(), VacinasEmMemoria())
@@ -122,6 +125,7 @@ class CasosDoRebanhoTest {
     @Test
     fun ca_03_1_corrige_dados_descritivos_sem_tocar_no_brinco() = runTest {
         val a = novo("A1")
+        lotes.salvar(Lote("l1", "f1", "Pasto 1"))
         val editado = editar(EdicaoDeAnimal(a.id, nome = " Mimosa ", raca = "Nelore", aptidao = Aptidao.CORTE, loteId = "l1", observacao = " "))
             .sucesso()
         assertEquals("Mimosa", editado.nome)
