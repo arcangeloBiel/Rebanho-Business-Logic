@@ -5,8 +5,13 @@ import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.EstadoSessao
 import com.jakatech.rebanhomais.kmp.domain.model.Usuario
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeConta
+import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeFazenda
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AuthRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /** O e-mail para onde o código foi enviado, já normalizado. A UI leva o usuário para a tela do código. */
 data class ContaCriada(val email: String)
@@ -57,12 +62,39 @@ class Entrar(private val auth: AuthRepository) {
     }
 }
 
-/** HU-03: sair e apagar a sessão do aparelho. */
-class Sair(private val auth: AuthRepository) {
-    suspend operator fun invoke() = auth.sair()
+/**
+ * HU-03: sair e apagar do aparelho a sessão, a lista de fazendas e a fazenda selecionada,
+ * para que outra pessoa no mesmo celular não veja os dados.
+ */
+class Sair(
+    private val auth: AuthRepository,
+    private val minhasFazendas: MinhasFazendasRepository,
+    private val preferencias: PreferenciasRepository
+) {
+    suspend operator fun invoke() {
+        auth.sair()
+        minhasFazendas.limpar()
+        preferencias.selecionarFazenda(null)
+    }
 }
 
-/** RF-02: a UI observa este fluxo para decidir entre abertura, login e app. */
-class ObservarSessao(private val auth: AuthRepository) {
-    operator fun invoke(): Flow<EstadoSessao> = auth.sessao
+/**
+ * RF-02: a UI observa este fluxo para decidir entre abertura, login, criar a primeira fazenda e o app.
+ * Quando logado, junta as fazendas do usuário e a selecionada (RN-07).
+ */
+class ObservarSessao(
+    private val auth: AuthRepository,
+    private val minhasFazendas: MinhasFazendasRepository,
+    private val preferencias: PreferenciasRepository
+) {
+    operator fun invoke(): Flow<EstadoSessao> =
+        combine(auth.sessao, minhasFazendas.fazendas, preferencias.fazendaSelecionadaId) { sessao, fazendas, idGuardado ->
+            when (sessao) {
+                is EstadoSessao.Logado -> sessao.copy(
+                    fazendas = fazendas,
+                    fazendaSelecionada = RegrasDeFazenda.escolherSelecionada(fazendas, idGuardado)
+                )
+                else -> sessao
+            }
+        }.distinctUntilChanged()
 }

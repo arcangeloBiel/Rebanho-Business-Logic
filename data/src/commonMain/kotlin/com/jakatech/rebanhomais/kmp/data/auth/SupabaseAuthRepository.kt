@@ -1,5 +1,6 @@
 package com.jakatech.rebanhomais.kmp.data.auth
 
+import com.jakatech.rebanhomais.kmp.data.comum.executar
 import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.EstadoSessao
@@ -8,12 +9,9 @@ import com.jakatech.rebanhomais.kmp.domain.repositorio.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.exception.AuthRestException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
-import io.github.jan.supabase.exceptions.HttpRequestException
-import io.github.jan.supabase.exceptions.RestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -51,7 +49,7 @@ class SupabaseAuthRepository(private val supabase: SupabaseClient) : AuthReposit
         }
     }
 
-    override suspend fun criarConta(email: String, senha: String, nome: String?): Resultado<Unit> = chamar {
+    override suspend fun criarConta(email: String, senha: String, nome: String?): Resultado<Unit> = executar {
         val usuario = auth.signUpWith(Email) {
             this.email = email
             this.password = senha
@@ -64,16 +62,16 @@ class SupabaseAuthRepository(private val supabase: SupabaseClient) : AuthReposit
         }
     }
 
-    override suspend fun confirmarConta(email: String, codigo: String): Resultado<Usuario> = chamar {
+    override suspend fun confirmarConta(email: String, codigo: String): Resultado<Usuario> = executar {
         auth.verifyEmailOtp(type = OtpType.Email.EMAIL, email = email, token = codigo)
         usuarioAtual()
     }
 
-    override suspend fun reenviarCodigo(email: String): Resultado<Unit> = chamar {
+    override suspend fun reenviarCodigo(email: String): Resultado<Unit> = executar {
         auth.resendEmail(OtpType.Email.SIGNUP, email)
     }
 
-    override suspend fun entrar(email: String, senha: String): Resultado<Usuario> = chamar {
+    override suspend fun entrar(email: String, senha: String): Resultado<Usuario> = executar {
         auth.signInWith(Email) {
             this.email = email
             this.password = senha
@@ -95,21 +93,6 @@ class SupabaseAuthRepository(private val supabase: SupabaseClient) : AuthReposit
     private fun usuarioAtual(): Usuario =
         auth.currentUserOrNull()?.paraUsuario()
             ?: throw IllegalStateException("Sessão não encontrada depois da autenticação.")
-
-    /** Executa a chamada e converte as exceções do supabase-kt em erros do domínio. */
-    private inline fun <T> chamar(bloco: () -> T): Resultado<T> = try {
-        Resultado.Sucesso(bloco())
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: AuthRestException) {
-        Resultado.Falha(erroDeAuth(e.error, e.statusCode))
-    } catch (e: RestException) {
-        Resultado.Falha(erroDeAuth(e.error, e.statusCode))
-    } catch (e: HttpRequestException) {
-        Resultado.Falha(ErroDominio.SemConexao)
-    } catch (e: Exception) {
-        Resultado.Falha(ErroDominio.ErroInesperado(e.message ?: e::class.simpleName.orEmpty()))
-    }
 }
 
 internal fun UserInfo.paraUsuario(): Usuario = Usuario(
