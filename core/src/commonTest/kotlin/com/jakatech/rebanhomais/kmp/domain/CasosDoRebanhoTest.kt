@@ -16,8 +16,10 @@ import com.jakatech.rebanhomais.kmp.domain.fakes.HOJE
 import com.jakatech.rebanhomais.kmp.domain.fakes.IdsSequenciais
 import com.jakatech.rebanhomais.kmp.domain.fakes.MinhasFazendasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.MovimentacoesEmMemoria
+import com.jakatech.rebanhomais.kmp.domain.fakes.PesagensEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.PreferenciasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.RelogioFixo
+import com.jakatech.rebanhomais.kmp.domain.fakes.VacinasEmMemoria
 import com.jakatech.rebanhomais.kmp.domain.fakes.falhaCom
 import com.jakatech.rebanhomais.kmp.domain.fakes.sucesso
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
@@ -53,7 +55,7 @@ class CasosDoRebanhoTest {
     private val editar = EditarAnimal(animais)
     private val excluir = ExcluirAnimal(animais, minhasFazendas)
     private val saida = RegistrarSaida(animais, movimentacoes, ids, relogio)
-    private val historico = ObservarHistoricoDoAnimal(movimentacoes)
+    private val historico = ObservarHistoricoDoAnimal(movimentacoes, PesagensEmMemoria(), VacinasEmMemoria())
 
     private fun participar(fazendaId: String, papel: Papel = Papel.DONO) {
         minhasFazendas.fazendas.value += FazendaDoUsuario(Fazenda(fazendaId, "Fazenda $fazendaId"), papel)

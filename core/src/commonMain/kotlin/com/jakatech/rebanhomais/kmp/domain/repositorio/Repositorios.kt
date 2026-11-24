@@ -54,16 +54,28 @@ interface AnimalRepository {
 
 interface PesagemRepository {
     suspend fun salvar(pesagem: Pesagem)
+    /** Pesagens do animal em ordem de data. */
     suspend fun listarPorAnimal(animalId: String): List<Pesagem>
+
+    /** Pesagens do animal em ordem de data, atualizadas a cada mudança (PRD Fase 3, O4). */
+    fun observarPorAnimal(animalId: String): Flow<List<Pesagem>>
 }
 
 interface VacinaRepository {
     suspend fun salvarProtocolo(protocolo: ProtocoloSanitario)
     suspend fun buscarProtocolo(protocoloId: String): ProtocoloSanitario?
+    /** Protocolos da fazenda em ordem de nome. */
     suspend fun listarProtocolos(fazendaId: String): List<ProtocoloSanitario>
     suspend fun salvarAplicacao(aplicacao: AplicacaoVacina)
+    /** Aplicações do animal em ordem de data e dose. */
     suspend fun listarAplicacoesPorAnimal(animalId: String): List<AplicacaoVacina>
+    /** Aplicações da fazenda em ordem de data e dose. */
     suspend fun listarAplicacoesPorFazenda(fazendaId: String): List<AplicacaoVacina>
+
+    // Versões observáveis, atualizadas a cada mudança (PRD Fase 3, O4).
+    fun observarProtocolos(fazendaId: String): Flow<List<ProtocoloSanitario>>
+    fun observarAplicacoesPorAnimal(animalId: String): Flow<List<AplicacaoVacina>>
+    fun observarAplicacoesPorFazenda(fazendaId: String): Flow<List<AplicacaoVacina>>
 }
 
 interface MovimentacaoRepository {

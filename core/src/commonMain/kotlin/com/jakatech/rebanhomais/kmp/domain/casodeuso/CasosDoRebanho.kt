@@ -3,13 +3,17 @@ package com.jakatech.rebanhomais.kmp.domain.casodeuso
 import com.jakatech.rebanhomais.kmp.domain.comum.ErroDominio
 import com.jakatech.rebanhomais.kmp.domain.comum.Resultado
 import com.jakatech.rebanhomais.kmp.domain.model.Animal
+import com.jakatech.rebanhomais.kmp.domain.model.AplicacaoVacina
 import com.jakatech.rebanhomais.kmp.domain.model.Aptidao
 import com.jakatech.rebanhomais.kmp.domain.model.Movimentacao
+import com.jakatech.rebanhomais.kmp.domain.model.Pesagem
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeFazenda
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -21,8 +25,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
 /*
- * Casos de uso do rebanho que dependem do banco local (PRD Fase 3, fatia 2).
+ * Casos de uso do rebanho que dependem do banco local (PRD Fase 3, fatias 2 e 3).
  */
+
+/**
+ * Id da fazenda selecionada, pela mesma regra da sessão (RN-07 da Fase 2).
+ * Nulo sem fazendas ou depois de sair: as consultas do rebanho ficam vazias (RN-01).
+ */
+internal fun fazendaSelecionadaId(
+    minhasFazendas: MinhasFazendasRepository,
+    preferencias: PreferenciasRepository
+): Flow<String?> =
+    combine(minhasFazendas.fazendas, preferencias.fazendaSelecionadaId) { fazendas, idGuardado ->
+        RegrasDeFazenda.escolherSelecionada(fazendas, idGuardado)?.fazenda?.id
+    }.distinctUntilChanged()
 
 /**
  * HU-02: os animais da fazenda selecionada, atualizados sozinhos a cada cadastro (RF-03, O4).
@@ -38,9 +54,7 @@ class ObservarRebanho(
     /** Para uma busca que muda enquanto a tela está aberta (o texto digitado). */
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(busca: Flow<String>): Flow<List<Animal>> {
-        val fazendaId = combine(minhasFazendas.fazendas, preferencias.fazendaSelecionadaId) { fazendas, idGuardado ->
-            RegrasDeFazenda.escolherSelecionada(fazendas, idGuardado)?.fazenda?.id
-        }
+        val fazendaId = fazendaSelecionadaId(minhasFazendas, preferencias)
         return combine(fazendaId, busca.map { it.trim() }) { id, texto -> id to texto }
             .distinctUntilChanged()
             .flatMapLatest { (id, texto) ->
@@ -110,13 +124,35 @@ sealed interface EventoDoHistorico {
     data class Movimentou(val movimentacao: Movimentacao) : EventoDoHistorico {
         override val data: LocalDate get() = movimentacao.data
     }
-    // Pesagens e vacinas entram na fatia 3.
+
+    data class Pesou(val pesagem: Pesagem) : EventoDoHistorico {
+        override val data: LocalDate get() = pesagem.data
+    }
+
+    data class Vacinou(val aplicacao: AplicacaoVacina) : EventoDoHistorico {
+        override val data: LocalDate get() = aplicacao.data
+    }
 }
 
-/** HU-01 e HU-05: o histórico do animal em ordem de data, do mais antigo ao mais recente (RF-07). */
-class ObservarHistoricoDoAnimal(private val movimentacoes: MovimentacaoRepository) {
+/**
+ * HU-01, HU-04 e HU-05: o histórico do animal (movimentações, pesagens e vacinas) em ordem de data,
+ * do mais antigo ao mais recente (RF-07). No mesmo dia, a entrada vem antes dos manejos.
+ */
+class ObservarHistoricoDoAnimal(
+    private val movimentacoes: MovimentacaoRepository,
+    private val pesagens: PesagemRepository,
+    private val vacinas: VacinaRepository
+) {
     operator fun invoke(animalId: String): Flow<List<EventoDoHistorico>> =
-        movimentacoes.observarPorAnimal(animalId).map { lista ->
-            lista.map { EventoDoHistorico.Movimentou(it) }.sortedBy { it.data }
+        combine(
+            movimentacoes.observarPorAnimal(animalId),
+            pesagens.observarPorAnimal(animalId),
+            vacinas.observarAplicacoesPorAnimal(animalId)
+        ) { movs, pesos, aplicacoes ->
+            // sortedBy é estável: no mesmo dia, mantém movimentação → pesagem → vacina.
+            (movs.map { EventoDoHistorico.Movimentou(it) } +
+                pesos.map { EventoDoHistorico.Pesou(it) } +
+                aplicacoes.map { EventoDoHistorico.Vacinou(it) })
+                .sortedBy { it.data }
         }
 }

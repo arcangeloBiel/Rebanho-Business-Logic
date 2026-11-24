@@ -13,7 +13,14 @@ import com.jakatech.rebanhomais.kmp.domain.regra.ProximaAplicacao
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeData
 import com.jakatech.rebanhomais.kmp.domain.regra.RegrasDeProtocolo
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 
 data class NovoProtocolo(
@@ -129,4 +136,35 @@ class ListarPendenciasVacinais(
             hoje = relogio.hoje(),
             horizonteDias = horizonteDias
         )
+}
+
+/**
+ * HU-06: as pendências de vacina da fazenda selecionada, calculadas só com os dados do aparelho
+ * (RF-08, CA-06.1) e recalculadas a cada animal, protocolo ou aplicação gravados (O4).
+ *
+ * Sem fazenda selecionada, a lista fica vazia (RN-01). "Hoje" é lido a cada recálculo;
+ * a tela que fica aberta de um dia para o outro deve observar de novo ao voltar.
+ */
+class ObservarPendenciasVacinais(
+    private val animais: AnimalRepository,
+    private val vacinas: VacinaRepository,
+    private val minhasFazendas: MinhasFazendasRepository,
+    private val preferencias: PreferenciasRepository,
+    private val relogio: Relogio
+) {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    operator fun invoke(horizonteDias: Int = 7): Flow<List<PendenciaVacinal>> =
+        fazendaSelecionadaId(minhasFazendas, preferencias).flatMapLatest { fazendaId ->
+            if (fazendaId == null) {
+                flowOf(emptyList())
+            } else {
+                combine(
+                    animais.observarPorFazenda(fazendaId),
+                    vacinas.observarProtocolos(fazendaId),
+                    vacinas.observarAplicacoesPorFazenda(fazendaId)
+                ) { lista, protocolos, aplicacoes ->
+                    CalendarioSanitario.pendencias(lista, protocolos, aplicacoes, relogio.hoje(), horizonteDias)
+                }
+            }
+        }
 }

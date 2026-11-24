@@ -5,7 +5,9 @@ import com.jakatech.rebanhomais.kmp.data.criarClienteSupabase
 import com.jakatech.rebanhomais.kmp.data.fazendas.SupabaseMinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.data.local.AnimaisLocais
 import com.jakatech.rebanhomais.kmp.data.local.MovimentacoesLocais
+import com.jakatech.rebanhomais.kmp.data.local.PesagensLocais
 import com.jakatech.rebanhomais.kmp.data.local.RebanhoDatabase
+import com.jakatech.rebanhomais.kmp.data.local.VacinasLocais
 import com.jakatech.rebanhomais.kmp.data.local.moduloDoBancoLocal
 import com.jakatech.rebanhomais.kmp.data.preferencias.SettingsPreferenciasRepository
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.CadastrarAnimal
@@ -19,7 +21,9 @@ import com.jakatech.rebanhomais.kmp.domain.casodeuso.Entrar
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarMinhasFazendas
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ListarPendenciasVacinais
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarHistoricoDoAnimal
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarPendenciasVacinais
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarRebanho
+import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarResumoDePeso
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObservarSessao
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObterCategoria
 import com.jakatech.rebanhomais.kmp.domain.casodeuso.ObterResumoDePeso
@@ -39,7 +43,9 @@ import com.jakatech.rebanhomais.kmp.domain.repositorio.AnimalRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.AuthRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MinhasFazendasRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.MovimentacaoRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.PesagemRepository
 import com.jakatech.rebanhomais.kmp.domain.repositorio.PreferenciasRepository
+import com.jakatech.rebanhomais.kmp.domain.repositorio.VacinaRepository
 import com.russhwolf.settings.Settings
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.CoroutineScope
@@ -58,9 +64,8 @@ import org.koin.dsl.module
  * startKoin { androidContext(this@App); modules(rebanhoModule) }  // Android
  * ```
  *
- * Conta, sessão e minhas fazendas já funcionam (Fase 2). Animais e movimentações já gravam no banco
- * local (Fase 3, fatia 2). Pesagens e vacinas entram na fatia 3; até lá, os casos de uso delas estão
- * declarados mas não podem ser criados.
+ * Conta, sessão e minhas fazendas já funcionam (Fase 2). Animais, movimentações, pesagens, protocolos
+ * e aplicações de vacina gravam no banco local (Fase 3, fatias 2 e 3). Lotes entram na fatia 4.
  */
 val rebanhoModule: Module = module {
     includes(moduloDoBancoLocal)
@@ -80,6 +85,8 @@ val rebanhoModule: Module = module {
     single<PreferenciasRepository> { SettingsPreferenciasRepository(get()) }
     single<AnimalRepository> { AnimaisLocais(get()) }
     single<MovimentacaoRepository> { MovimentacoesLocais(get()) }
+    single<PesagemRepository> { PesagensLocais(get()) }
+    single<VacinaRepository> { VacinasLocais(get()) }
 
     // Conta e sessão (Fase 2)
     factory { CriarConta(get()) }
@@ -103,12 +110,14 @@ val rebanhoModule: Module = module {
     factory { ObservarRebanho(get(), get(), get()) }
     factory { EditarAnimal(get()) }
     factory { ExcluirAnimal(get(), get()) }
-    factory { ObservarHistoricoDoAnimal(get()) }
+    factory { ObservarHistoricoDoAnimal(get(), get(), get()) }
 
-    // Pesagens e vacinas (repositórios na Fase 3, fatia 3)
+    // Pesagens e vacinas (banco local, Fase 3 fatia 3)
     factory { RegistrarPesagem(get(), get(), get(), get()) }
     factory { ObterResumoDePeso(get()) }
+    factory { ObservarResumoDePeso(get()) }
     factory { CadastrarProtocolo(get(), get()) }
     factory { RegistrarVacinacao(get(), get(), get(), get()) }
     factory { ListarPendenciasVacinais(get(), get(), get()) }
+    factory { ObservarPendenciasVacinais(get(), get(), get(), get(), get()) }
 }
