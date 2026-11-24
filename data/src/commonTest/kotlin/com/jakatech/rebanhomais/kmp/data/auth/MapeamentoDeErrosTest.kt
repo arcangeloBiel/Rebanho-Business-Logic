@@ -27,6 +27,10 @@ class MapeamentoDeErrosTest {
         assertEquals(ErroDominio.CodigoInvalido, erroDeAuth("otp_expired", 403))
 
     @Test
+    fun senha_nova_igual_a_anterior() =
+        assertEquals(ErroDominio.SenhaIgualAnterior, erroDeAuth("same_password", 422))
+
+    @Test
     fun email_ainda_nao_confirmado() =
         assertEquals(ErroDominio.EmailNaoConfirmado, erroDeAuth("email_not_confirmed", 400))
 

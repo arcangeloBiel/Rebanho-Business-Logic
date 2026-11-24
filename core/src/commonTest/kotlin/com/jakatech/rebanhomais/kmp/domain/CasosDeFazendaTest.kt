@@ -35,6 +35,8 @@ private class SessaoFixa(estado: EstadoSessao) : AuthRepository {
     override suspend fun confirmarConta(email: String, codigo: String) = Resultado.Sucesso(Usuario("u1", email))
     override suspend fun reenviarCodigo(email: String) = Resultado.Sucesso(Unit)
     override suspend fun entrar(email: String, senha: String) = Resultado.Sucesso(Usuario("u1", email))
+    override suspend fun pedirCodigoDeRecuperacao(email: String) = Resultado.Sucesso(Unit)
+    override suspend fun redefinirSenha(email: String, codigo: String, novaSenha: String) = Resultado.Sucesso(Usuario("u1", email))
     override suspend fun sair() { sessao.value = EstadoSessao.Deslogado }
 }
 

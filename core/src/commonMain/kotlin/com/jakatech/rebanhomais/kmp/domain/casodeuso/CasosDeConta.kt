@@ -63,6 +63,37 @@ class Entrar(private val auth: AuthRepository) {
 }
 
 /**
+ * HU-04 (CA-04.1): pede o código de recuperação de senha.
+ * A resposta é a mesma exista ou não a conta (RN-03): só falhas que o usuário pode
+ * resolver (e-mail mal digitado, sem internet, muitas tentativas) aparecem.
+ */
+class PedirRecuperacaoDeSenha(private val auth: AuthRepository) {
+    suspend operator fun invoke(email: String): Resultado<Unit> {
+        val emailNormalizado = RegrasDeConta.normalizarEmail(email)
+        RegrasDeConta.validarEmail(emailNormalizado)?.let { return Resultado.Falha(it) }
+        return when (val r = auth.pedirCodigoDeRecuperacao(emailNormalizado)) {
+            is Resultado.Sucesso -> r
+            is Resultado.Falha -> when (r.erro) {
+                ErroDominio.SemConexao, ErroDominio.MuitasTentativas -> r
+                else -> Resultado.Sucesso(Unit)
+            }
+        }
+    }
+}
+
+/** HU-04 (CA-04.2, CA-04.3): troca a senha usando o código recebido por e-mail. */
+class RedefinirSenha(private val auth: AuthRepository) {
+    suspend operator fun invoke(email: String, codigo: String, novaSenha: String): Resultado<Usuario> {
+        val emailNormalizado = RegrasDeConta.normalizarEmail(email)
+        RegrasDeConta.validarEmail(emailNormalizado)?.let { return Resultado.Falha(it) }
+        val codigoNormalizado = RegrasDeConta.normalizarCodigo(codigo)
+        RegrasDeConta.validarCodigo(codigoNormalizado)?.let { return Resultado.Falha(it) }
+        RegrasDeConta.validarSenhaNova(novaSenha)?.let { return Resultado.Falha(it) }
+        return auth.redefinirSenha(emailNormalizado, codigoNormalizado, novaSenha)
+    }
+}
+
+/**
  * HU-03: sair e apagar do aparelho a sessão, a lista de fazendas e a fazenda selecionada,
  * para que outra pessoa no mesmo celular não veja os dados.
  */
